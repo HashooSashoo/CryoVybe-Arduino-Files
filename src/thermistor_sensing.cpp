@@ -13,7 +13,7 @@ float readThermistorC() {
 
   float r = R_FIXED * raw / (4095.0 - raw);              // thermistor resistance
   float invT = 1.0 / T_NOMINAL + log(r / R_NOMINAL) / BETA;
-  return 1.0 / invT - 273.15;                            // Kelvin → °C
+  return (1.0 / invT - 273.15) * (9.0 / 5.0) + 32.0;                            // Kelvin to C
 }
 
 void setup() {
@@ -22,7 +22,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.print(">thermistor:");
+  Serial.print(">thermistor: ");
   Serial.println(readThermistorC());
   delay(100);
 }
