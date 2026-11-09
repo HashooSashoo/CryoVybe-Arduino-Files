@@ -6,6 +6,7 @@
 //   SDA -> SDA
 //   SCL -> SCL
 //   LRA motor wires -> the two motor pads (+ and -), either way round
+//   (use USB for +, this provides 5V, and motor needs more than 3 V to properly calibrate)
 //   Leave the IN pin unconnected.
 //
 // Open the Serial Monitor at 115200 baud, then type:
