@@ -158,9 +158,8 @@ const char *const EFFECT_NAMES[NUM_EFFECTS + 1] = {
 
 // ---- Motor settings: typical coin LRA. Check your motor's datasheet. ----
 // If the motor rattles or sounds harsh, lower LRA_RATED_VRMS a little.
-const float LRA_RATED_VRMS = 2.0;   // rated voltage, volts RMS (coin LRAs: usually 1.8-2.0)
-const float LRA_PEAK_V     = 3.0;   // max voltage for short "kick" at start, volts peak
-const float LRA_FREQ_HZ    = 200;   // resonant frequency (coin LRAs: usually 170-235)
+const float ERM_RATED_V = 3.0;   // rated voltage, volts RMS (coin LRAs: usually 1.8-2.0)
+const float ERM_PEAK_V  = 3.7;   // max voltage for short "kick" at start, volts peak
 
 // DRV2605L register addresses (from the TI datasheet)
 const uint8_t REG_STATUS   = 0x00;
@@ -173,23 +172,44 @@ const uint8_t REG_CAL_COMP = 0x18;
 const uint8_t REG_CAL_BEMF = 0x19;
 const uint8_t REG_FEEDBACK = 0x1A;
 const uint8_t REG_CONTROL1 = 0x1B;
+const uint8_t REG_CONTROL2 = 0x1C;
+const uint8_t REG_CONTROL3 = 0x1D;
 const uint8_t REG_CONTROL4 = 0x1E;
 
-// Write the voltage and drive settings for the motor.
+// ERM-mode lookup for BLANKING_TIME and IDISS_TIME (Table 25)
+const float ERM_TIME_LUT[4] = {45e-6f, 75e-6f, 150e-6f, 225e-6f};
+
 void configureMotor() {
+  // ERM mode first (bit 7 = 0), 4x brake, medium loop gain, BEMF gain 2
+  drv.writeRegister8(REG_FEEDBACK, 0x2A);
+
+  // Read the timing fields straight from the chip
+  uint8_t c1 = drv.readRegister8(REG_CONTROL1);
+  uint8_t c2 = drv.readRegister8(REG_CONTROL2);
+
+  uint8_t driveTime  = c1 & 0x1F;          // DRIVE_TIME[4:0]
+  uint8_t blankIdx   = (c2 >> 2) & 0x03;   // BLANKING_TIME[1:0]
+  uint8_t idissIdx   = c2 & 0x03;          // IDISS_TIME[1:0]
+
+  float tDrive = (driveTime * 0.2f + 1.0f) * 1e-3f;   // ERM: 0.2 ms steps + 1 ms
+  float tBlank = ERM_TIME_LUT[blankIdx];
+  float tIdiss = ERM_TIME_LUT[idissIdx];
+
   // Rated voltage (datasheet formula for LRA, default 300 us sample time)
-  float scale = sqrtf(1.0f - (4 * 300e-6f + 300e-6f) * LRA_FREQ_HZ);
-  int rated = (int)(LRA_RATED_VRMS * scale / 20.58e-3f + 0.5f);
-  int clamp = (int)(LRA_PEAK_V / 21.22e-3f + 0.5f);
-  drv.writeRegister8(REG_RATED_V, constrain(rated, 0, 255));
-  drv.writeRegister8(REG_CLAMP_V, constrain(clamp, 0, 255));
+  int rated_voltage = (int)(ERM_RATED_V / 21.18e-3 + 0.5f);
+  int clamp_value = (int)(ERM_PEAK_V * (tDrive + tIdiss + tBlank) / (21.64e-3f * (tDrive - 300e-6f)) + 0.5f);
+  drv.writeRegister8(REG_RATED_V, constrain(rated_voltage, 0, 255));
+  drv.writeRegister8(REG_CLAMP_V, constrain(clamp_value, 0, 255));
 
-  // LRA mode, strong braking, medium loop gain
-  drv.writeRegister8(REG_FEEDBACK, 0xB6);
+  // Startup boost on, keep whatever drive time is already set
+  drv.writeRegister8(REG_CONTROL1, c1 | 0x80);
 
-  // Drive time = half a period of the motor's frequency, plus startup boost
-  int driveTime = (int)((1000.0f / (2 * LRA_FREQ_HZ) - 0.5f) / 0.1f + 0.5f);
-  drv.writeRegister8(REG_CONTROL1, 0x80 | constrain(driveTime, 0, 31));
+  // writing here to set sample time, blinking time, and IDSS time manually
+   drv.writeRegister8(REG_CONTROL2, 0xF5);
+
+  // Closed-loop ERM: clear ERM_OPEN_LOOP (bit 5), keep the other bits
+  uint8_t c3 = drv.readRegister8(REG_CONTROL3);
+  drv.writeRegister8(REG_CONTROL3, c3 & ~0x20);
 }
 
 // Let the chip measure the motor and tune itself to it (about 1 second).
@@ -200,15 +220,15 @@ bool calibrate() {
   drv.writeRegister8(REG_MODE, 0x07);        // auto-calibration mode
   drv.writeRegister8(REG_GO, 0x01);
   unsigned long start = millis();
-  while ((drv.readRegister8(REG_GO) & 0x01) && millis() - start < 3000) {
+  while ((drv.readRegister8(REG_GO) & 0x01) && (millis() - start) < 3000) {
 
     Serial.println(millis() - start);
-    Serial.println(REG_GO);
+    Serial.println(drv.readRegister8(REG_GO));
 
     delay(10);
   }
 
-  Serial.println(REG_GO);
+  Serial.println(drv.readRegister8(REG_GO));
 
   bool ok = !(drv.readRegister8(REG_STATUS) & 0x08);
   drv.setMode(DRV2605_MODE_INTTRIG);
@@ -321,8 +341,8 @@ void setup() {
     while (true) delay(1000);
   }
 
-  drv.useLRA();                       // driving an LRA, not a coin motor
-  drv.selectLibrary(6);               // library 6 = effects tuned for LRAs
+  drv.useERM();                       // driving an LRA, not a coin motor
+  drv.selectLibrary(1);               // library 6 = effects tuned for LRAs
   calibrate();                        // full-strength settings + tune to the motor
   drv.setMode(DRV2605_MODE_INTTRIG);  // play effects when we call go()
   Serial.println("DRV2605L ready.");
