@@ -22,7 +22,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include "Adafruit_DRV2605.h"
+#include <Adafruit_DRV2605.h>
 
 Adafruit_DRV2605 drv;
 
@@ -200,7 +200,15 @@ bool calibrate() {
   drv.writeRegister8(REG_MODE, 0x07);        // auto-calibration mode
   drv.writeRegister8(REG_GO, 0x01);
   unsigned long start = millis();
-  while ((drv.readRegister8(REG_GO) & 0x01) && millis() - start < 3000) delay(10);
+  while ((drv.readRegister8(REG_GO) & 0x01) && millis() - start < 3000) {
+
+    Serial.println(millis() - start);
+    Serial.println(REG_GO);
+
+    delay(10);
+  }
+
+  Serial.println(REG_GO);
 
   bool ok = !(drv.readRegister8(REG_STATUS) & 0x08);
   drv.setMode(DRV2605_MODE_INTTRIG);
