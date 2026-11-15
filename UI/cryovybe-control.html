@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CryoVybe Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050912;
+    --panel: rgba(140, 190, 255, 0.045);
+    --panel-hi: rgba(140, 190, 255, 0.08);
+    --line: rgba(150, 200, 255, 0.13);
+    --text: #e8f2ff;
+    --mute: #7d91b0;
+    --faint: #4a5b78;
+    --ice: #8eeaff;
+    --ice2: #4d9dff;
+    --ok: #63f2bb;
+    --warn: #ffbd72;
+    --bad: #ff6f8e;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(1100px 600px at 12% -10%, rgba(77, 157, 255, 0.18), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(142, 234, 255, 0.10), transparent 60%),
+      radial-gradient(700px 500px at 50% 120%, rgba(120, 90, 255, 0.10), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Sora", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(150, 200, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150, 200, 255, 0.035) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 80%);
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; position: relative; }
+
+  /* ---------- Header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 26px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+    background: linear-gradient(145deg, rgba(142,234,255,.25), rgba(77,157,255,.08));
+    border: 1px solid rgba(142,234,255,.35);
+    box-shadow: 0 0 30px rgba(142,234,255,.18), inset 0 0 12px rgba(142,234,255,.15);
+  }
+  .brand h1 { font-size: 21px; font-weight: 600; letter-spacing: .02em; margin: 0; }
+  .brand h1 span { color: var(--ice); font-weight: 300; }
+  .brand p { margin: 2px 0 0; font-size: 12.5px; color: var(--mute); letter-spacing: .04em; }
+
+  .conn { display: flex; align-items: center; gap: 10px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; color: var(--mute);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .pill.on .dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+  .pill.on { color: var(--text); }
+  .pill.busy .dot { background: var(--warn); animation: blink 1s infinite; }
+  .pill.preview .dot { background: var(--ice2); }
+  @keyframes blink { 50% { opacity: .3; } }
+
+  button {
+    font: inherit; cursor: pointer; border: none; color: inherit;
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s;
+  }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+  .btn {
+    padding: 10px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600;
+    background: linear-gradient(135deg, var(--ice), var(--ice2)); color: #04101f;
+    box-shadow: 0 6px 24px rgba(77,157,255,.35);
+  }
+  .btn.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--line); box-shadow: none; }
+  .btn:focus-visible, .mode:focus-visible, .stop:focus-visible { outline: 2px solid var(--ice); outline-offset: 3px; }
+
+  /* ---------- Layout ---------- */
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; }
+  @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--mute); }
+
+  /* ---------- Visualizer ---------- */
+  .scope { padding: 18px 20px 14px; position: relative; overflow: hidden; }
+  .scope-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .now { font-size: 30px; font-weight: 600; margin-top: 6px; letter-spacing: -.01em; }
+  .now small { display: block; font-size: 13px; font-weight: 400; color: var(--mute); margin-top: 2px; }
+  .drive { text-align: right; }
+  .drive .val { font-family: "JetBrains Mono", monospace; font-size: 26px; font-weight: 500; color: var(--ice); margin-top: 6px; }
+  .bar { width: 140px; height: 5px; border-radius: 4px; background: rgba(150,200,255,.12); margin-top: 8px; margin-left: auto; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--ice2), var(--ice)); box-shadow: 0 0 12px var(--ice); }
+  canvas { display: block; width: 100%; height: 230px; margin-top: 10px; }
+  .scope-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); font-family: "JetBrains Mono", monospace; }
+  .badge { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+           border: 1px solid rgba(77,157,255,.45); color: var(--ice2); margin-left: 8px; vertical-align: middle; display: none; }
+  .badge.show { display: inline-block; }
+
+  /* ---------- Modes ---------- */
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 640px) { .modes { grid-template-columns: 1fr; } }
+  .mode {
+    text-align: left; padding: 18px 18px 16px; border-radius: var(--radius);
+    background: var(--panel); border: 1px solid var(--line); position: relative; overflow: hidden;
+  }
+  .mode:hover { background: var(--panel-hi); border-color: rgba(142,234,255,.3); }
+  .mode .key {
+    position: absolute; top: 14px; right: 14px; font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: var(--mute); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px;
+  }
+  .mode h3 { margin: 12px 0 4px; font-size: 15.5px; font-weight: 600; }
+  .mode p { margin: 0; font-size: 12.5px; color: var(--mute); line-height: 1.45; }
+  .mode svg { width: 100%; height: 34px; display: block; margin-top: 22px; }
+  .mode svg path { fill: none; stroke: var(--ice2); stroke-width: 1.6; stroke-linejoin: round; opacity: .8; }
+  .mode.active {
+    border-color: rgba(142,234,255,.6);
+    background: linear-gradient(160deg, rgba(142,234,255,.14), rgba(77,157,255,.05));
+    box-shadow: 0 0 0 1px rgba(142,234,255,.25), 0 10px 40px rgba(77,157,255,.25);
+  }
+  .mode.active svg path { stroke: var(--ice); opacity: 1; filter: drop-shadow(0 0 4px var(--ice)); }
+  .mode.active .key { color: #04101f; background: var(--ice); border-color: var(--ice); }
+
+  .stop {
+    width: 100%; margin-top: 14px; padding: 16px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase;
+    background: rgba(255,111,142,.08); border: 1px solid rgba(255,111,142,.35); color: #ffc2cf;
+  }
+  .stop:not(:disabled):hover { background: rgba(255,111,142,.16); box-shadow: 0 0 30px rgba(255,111,142,.2); }
+
+  /* ---------- Strength ---------- */
+  .strength { margin-top: 14px; padding: 16px 20px 14px; }
+  .strength-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .strength-head b { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 22px; color: var(--ice); }
+  .strength-foot { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--faint); margin-top: 6px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 8px 0 0; cursor: pointer; }
+  input[type=range]:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; border-radius: 8px; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 4px;
+    background: linear-gradient(90deg, var(--ice2) 0%, var(--ice) var(--fill, 100%), rgba(150,200,255,.12) var(--fill, 100%));
+  }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 4px; background: rgba(150,200,255,.12); }
+  input[type=range]::-moz-range-progress { height: 6px; border-radius: 4px; background: linear-gradient(90deg, var(--ice2), var(--ice)); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; margin-top: -7px;
+    background: #e8f8ff; border: 3px solid var(--ice); box-shadow: 0 0 14px rgba(142,234,255,.7);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #e8f8ff; border: 3px solid var(--ice); box-shadow: 0 0 14px rgba(142,234,255,.7);
+  }
+
+  /* ---------- Side panel ---------- */
+  .side { display: flex; flex-direction: column; gap: 20px; }
+  .stats { padding: 18px 20px; display: grid; gap: 14px; }
+  .stat { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .stat:last-child { border-bottom: none; padding-bottom: 0; }
+  .stat b { font-weight: 500; font-size: 14px; }
+  .stat .mono { font-family: "JetBrains Mono", monospace; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+
+  .console { padding: 16px 0 0; display: flex; flex-direction: column; min-height: 300px; }
+  .console-head { display: flex; justify-content: space-between; align-items: center; padding: 0 20px 10px; }
+  .console-head button { background: none; color: var(--mute); font-size: 12px; padding: 2px 4px; }
+  .console-head button:hover { color: var(--text); }
+  .log {
+    flex: 1; overflow-y: auto; max-height: 340px; padding: 4px 20px 16px;
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px; line-height: 1.65;
+  }
+  .log div { white-space: pre-wrap; word-break: break-word; }
+  .log .t { color: var(--faint); margin-right: 8px; }
+  .log .rx { color: #b9cbe6; } .log .tx { color: var(--ice); } .log .sys { color: var(--mute); font-style: italic; } .log .err { color: var(--bad); }
+  .log::-webkit-scrollbar { width: 6px; } .log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .notice {
+    display: none; margin-bottom: 20px; padding: 14px 18px; border-radius: 14px; font-size: 13px; line-height: 1.5;
+    background: rgba(255,189,114,.08); border: 1px solid rgba(255,189,114,.35); color: #ffd9ac;
+  }
+  .notice.show { display: block; }
+  .hint { margin-top: 18px; font-size: 12px; color: var(--faint); text-align: center; }
+  .hint kbd { font-family: "JetBrains Mono", monospace; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; color: var(--mute); }
+
+  /* ---------- Measured (accelerometer) ---------- */
+  .meas { padding: 18px 20px 18px; margin-top: 20px; }
+  .meas-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .mstate { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--mute); }
+  .mstate .dot { width: 7px; height: 7px; }
+  .mstate.live { color: var(--ok); } .mstate.live .dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); animation: blink 1.2s infinite; }
+  .mstate.wait .dot { background: var(--warn); } .mstate.off .dot { background: var(--bad); }
+  .meas-body { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; }
+  @media (max-width: 640px) { .meas-body { grid-template-columns: 1fr; } }
+  .big { font-size: 46px; font-weight: 600; letter-spacing: -.02em; line-height: 1; color: var(--ice);
+         text-shadow: 0 0 24px rgba(142,234,255,.35); font-variant-numeric: tabular-nums; }
+  .big small { font-size: 16px; font-weight: 400; color: var(--mute); margin-left: 6px; text-shadow: none; }
+  .big-label { margin-bottom: 8px; }
+  .mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; margin-top: 20px; }
+  .mgrid div { display: flex; flex-direction: column; gap: 4px; }
+  .mgrid b { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 17px; }
+  .mgrid em { font-style: normal; font-size: 12px; color: var(--mute); margin-left: 4px; }
+  .plot-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); margin-bottom: 4px; }
+  .plot-label + canvas { margin-top: 0; }
+  #wave { height: 120px; margin-top: 0; }
+  #hist { height: 70px; margin-top: 0; }
+  .plot-gap { height: 12px; }
+  .sw { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin: 0 5px 0 10px; }
+  .sw.f { background: var(--ice); margin-left: 0; } .sw.a { background: #b69bff; }
+  .meas-empty { font-size: 12.5px; color: var(--faint); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8eeaff" stroke-width="1.6" stroke-linecap="round">
+          <path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7"/>
+          <path d="M9.5 3.5L12 6l2.5-2.5M9.5 20.5L12 18l2.5 2.5"/>
+        </svg>
+      </div>
+      <div>
+        <h1>CryoVybe <span>Control</span></h1>
+        <p>Haptic driver · DRV2605L · Feather M4</p>
+      </div>
+    </div>
+    <div class="conn">
+      <span class="pill" id="connPill"><span class="dot"></span><span id="connText">Not connected</span></span>
+      <button class="btn" id="connectBtn">Connect device</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice"></div>
+
+  <div class="grid">
+    <main>
+      <section class="card scope">
+        <div class="scope-top">
+          <div>
+            <div class="label">Now playing <span class="badge" id="previewBadge">Preview</span></div>
+            <div class="now" id="nowName">Idle<small id="nowSub">Choose a mode below</small></div>
+          </div>
+          <div class="drive">
+            <div class="label">Drive</div>
+            <div class="val" id="driveVal">0%</div>
+            <div class="bar"><i id="driveBar"></i></div>
+          </div>
+        </div>
+        <canvas id="scope" aria-label="Animated view of the vibration pattern"></canvas>
+        <div class="scope-foot"><span>−2.5 s</span><span>pattern envelope</span><span>now</span></div>
+      </section>
+
+      <section class="card meas">
+        <div class="meas-head">
+          <span class="label">Measured · LSM6DSOX accelerometer</span>
+          <span class="mstate" id="mState"><span class="dot"></span><span id="mStateText">Connect to measure</span></span>
+        </div>
+        <div class="meas-body">
+          <div>
+            <div class="label big-label">Frequency</div>
+            <div class="big"><span id="mFreq">—</span><small>Hz</small></div>
+            <div class="mgrid">
+              <div><span class="label">Peak accel</span><span><b id="mPk">—</b><em>g</em></span></div>
+              <div><span class="label">RMS accel</span><span><b id="mRms">—</b><em>g</em></span></div>
+              <div><span class="label">Displacement</span><span><b id="mDisp">—</b><em>µm</em></span></div>
+              <div><span class="label">Axis · rate</span><span><b id="mAxis">—</b></span></div>
+            </div>
+          </div>
+          <div>
+            <div class="plot-label"><span>Measured signal, strongest axis</span><span id="waveScale"></span></div>
+            <canvas id="wave" aria-label="Latest measured acceleration"></canvas>
+            <div class="plot-gap"></div>
+            <div class="plot-label"><span><i class="sw f"></i>Frequency<i class="sw a"></i>Peak accel</span><span id="histRange">last 60 readings</span></div>
+            <canvas id="hist" aria-label="History of frequency and amplitude"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <div class="modes" id="modes"></div>
+      <section class="card strength">
+        <div class="strength-head"><label class="label" for="strength">Strength</label><b id="strVal">100%</b></div>
+        <input type="range" id="strength" min="0" max="100" step="5" value="100">
+        <div class="strength-foot"><span>Off</span><span>Clicks step through 30 · 60 · 80 · 100%</span><span>Max</span></div>
+      </section>
+      <button class="stop" id="stopBtn" disabled>Stop motor</button>
+      <div class="hint">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> start a mode · <kbd>+</kbd> <kbd>−</kbd> strength · <kbd>Space</kbd> stop</div>
+    </main>
+
+    <aside class="side">
+      <section class="card stats">
+        <div class="stat"><span class="label">Status</span><b id="stStatus">Disconnected</b></div>
+        <div class="stat"><span class="label">Active mode</span><b id="stMode">—</b></div>
+        <div class="stat"><span class="label">Run time</span><b class="mono" id="stTime">00:00.0</b></div>
+        <div class="stat"><span class="label">Calibration</span><b id="stCal">—</b></div>
+      </section>
+      <section class="card console">
+        <div class="console-head">
+          <span class="label">Serial log</span>
+          <button id="clearLog">Clear</button>
+        </div>
+        <div class="log" id="log" aria-live="polite"></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Mode definitions (match src/main.cpp on the zaks_edits_for_vibration branch)
+// ---------------------------------------------------------------------------
+const CLICK_GAP_MS = 150, PATTERN_BUZZ_MS = 500, DOUBLE_CLICK_MS = 100, PATTERN_GAP_MS = 300;
+const CLICK_MS = 50;   // approximate length of the library's Strong Click
+
+function click(p) {                       // sharp attack, fast decay
+  if (p < 0 || p > CLICK_MS) return 0;
+  return p < 4 ? p / 4 : Math.exp(-(p - 4) / 13);
+}
+
+const MODES = {
+  1: {
+    name: 'Continuous buzz', desc: 'Steady full-strength vibration until stopped.',
+    env: t => Math.min(1, t / 30),
+  },
+  2: {
+    name: 'Strong clicks', desc: `Sharp clicks, one every ${CLICK_MS + CLICK_GAP_MS} ms.`,
+    env: t => click(t % (CLICK_MS + CLICK_GAP_MS)),
+  },
+  3: {
+    name: 'Buzz + double click', desc: 'Half-second buzz, then two clicks, repeating.',
+    env: t => {
+      const period = PATTERN_BUZZ_MS + CLICK_MS + DOUBLE_CLICK_MS + CLICK_MS + PATTERN_GAP_MS;
+      const p = t % period;
+      if (p < PATTERN_BUZZ_MS) return Math.min(1, p / 25);
+      const c1 = PATTERN_BUZZ_MS, c2 = c1 + CLICK_MS + DOUBLE_CLICK_MS;
+      return Math.max(click(p - c1), click(p - c2));
+    },
+  },
+};
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+let port = null, writer = null, reader = null, keepReading = false;
+let activeMode = 0, runStart = 0, previewing = false;
+let uiStrength = 100;   // percent
+const segments = [];   // timeline of {mode, start, end} for the scope
+
+function now() { return performance.now(); }
+
+function beginSegment(mode) {
+  const t = now();
+  endSegment(t);
+  segments.push({ mode, start: t, end: Infinity });
+}
+function endSegment(t = now()) {
+  const last = segments[segments.length - 1];
+  if (last && last.end === Infinity) last.end = t;
+  while (segments.length && segments[0].end < t - 10000) segments.shift();
+}
+function envAt(T) {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const s = segments[i];
+    if (T >= s.start && T < s.end) return MODES[s.mode].env(T - s.start) * uiStrength / 100;
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
+// UI building
+// ---------------------------------------------------------------------------
+function glyph(mode) {   // tiny envelope sketch for each mode card
+  const W = 200, H = 34, span = mode === 3 ? 2100 : 1100;
+  let d = '';
+  for (let x = 0; x <= W; x += 1) {
+    const e = MODES[mode].env(x / W * span + 1);
+    const y = H / 2 - e * (H / 2 - 3) * Math.sin(x * 0.9);
+    d += (x ? 'L' : 'M') + x + ' ' + y.toFixed(1);
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}"/></svg>`;
+}
+
+const modesEl = $('modes');
+for (const n of [1, 2, 3]) {
+  const b = document.createElement('button');
+  b.className = 'mode'; b.dataset.mode = n;
+  b.innerHTML = `<span class="key">${n}</span>${glyph(n)}<h3>${MODES[n].name}</h3><p>${MODES[n].desc}</p>`;
+  b.addEventListener('click', () => startMode(n));
+  modesEl.appendChild(b);
+}
+
+function render() {
+  document.querySelectorAll('.mode').forEach(b => b.classList.toggle('active', +b.dataset.mode === activeMode));
+  $('stopBtn').disabled = !activeMode;
+  $('previewBadge').classList.toggle('show', previewing && !!activeMode);
+  if (activeMode) {
+    $('nowName').firstChild.nodeValue = MODES[activeMode].name;
+    $('nowSub').textContent = previewing ? 'Preview only, no device' : `Mode ${activeMode}`;
+    $('stMode').textContent = `${activeMode} · ${MODES[activeMode].name}`;
+  } else {
+    $('nowName').firstChild.nodeValue = 'Idle';
+    $('nowSub').textContent = port ? 'Choose a mode below' : 'Connect, or tap a mode to preview';
+    $('stMode').textContent = '—';
+  }
+  const pill = $('connPill');
+  pill.className = 'pill' + (port ? ' on' : previewing && activeMode ? ' preview' : '');
+  $('connText').textContent = port ? 'Connected' : 'Not connected';
+  $('connectBtn').textContent = port ? 'Disconnect' : 'Connect device';
+  const st = $('stStatus');
+  if (!port) { st.textContent = previewing && activeMode ? 'Preview' : 'Disconnected'; st.className = ''; }
+  else if (activeMode) { st.textContent = 'Vibrating'; st.className = 'ok'; }
+  else { st.textContent = 'Ready'; st.className = ''; }
+  renderMeas();
+}
+
+// ---------------------------------------------------------------------------
+// Log
+// ---------------------------------------------------------------------------
+function log(kind, text) {
+  const el = $('log');
+  const row = document.createElement('div');
+  const ts = new Date().toLocaleTimeString([], { hour12: false });
+  row.innerHTML = `<span class="t">${ts}</span><span class="${kind}"></span>`;
+  row.lastChild.textContent = (kind === 'tx' ? '→ ' : '') + text;
+  el.appendChild(row);
+  while (el.children.length > 400) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+$('clearLog').onclick = () => { $('log').innerHTML = ''; };
+
+function notice(html) {
+  const n = $('notice');
+  n.innerHTML = html || '';
+  n.classList.toggle('show', !!html);
+}
+
+// ---------------------------------------------------------------------------
+// Serial (Web Serial API)
+// ---------------------------------------------------------------------------
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function send(text, show = text) {
+  if (!writer) return;
+  await writer.write(new TextEncoder().encode(text));
+  log('tx', show);
+}
+
+async function connect() {
+  if (!('serial' in navigator)) return;
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 115200 });
+    try { await port.setSignals({ dataTerminalReady: true }); } catch (_) {}
+    writer = port.writable.getWriter();
+    keepReading = true;
+    stopPreview();
+    notice('');
+    log('sys', 'Connected to device');
+    render();
+    readLoop();
+    setTimeout(() => sendStrength(uiStrength), 400);   // make the board match the slider
+  } catch (e) {
+    port = null; writer = null;
+    if (e.name === 'NotFoundError') return;   // user closed the picker
+    log('err', e.message);
+    if (/open|busy|access/i.test(e.message)) {
+      notice('Could not open the port. Close the PlatformIO Serial Monitor (trash-can icon in VS Code) and any other app using the Feather, then try again.');
+    }
+    render();
+  }
+}
+
+async function disconnect(silent = false) {
+  keepReading = false;
+  try { if (reader) await reader.cancel(); } catch (_) {}
+  try { if (writer) { writer.releaseLock(); } } catch (_) {}
+  try { if (port) await port.close(); } catch (_) {}
+  port = null; writer = null; reader = null;
+  if (activeMode) { endSegment(); activeMode = 0; }
+  if (!silent) log('sys', 'Disconnected');
+  render();
+}
+
+async function readLoop() {
+  const dec = new TextDecoder();
+  let buf = '';
+  while (port && port.readable && keepReading) {
+    reader = port.readable.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let m;
+        while ((m = buf.match(/\r?\n/))) {
+          handleLine(buf.slice(0, m.index));
+          buf = buf.slice(m.index + m[0].length);
+        }
+      }
+    } catch (e) {
+      if (keepReading) log('err', 'Connection lost: ' + e.message);
+      break;
+    } finally {
+      try { reader.releaseLock(); } catch (_) {}
+    }
+  }
+  if (keepReading) disconnect(true);
+}
+
+function handleLine(line) {
+  if (!line.trim()) return;
+  line = line.trim();
+  if (line.startsWith('@ACCEL')) {               // sensor status at startup
+    meas.present = /ok/.test(line);
+    log('sys', meas.present ? 'Accelerometer found' : 'Accelerometer not found');
+    renderMeas();
+    return;
+  }
+  if (line.startsWith('@ACC ')) { handleAcc(line.slice(5)); return; }
+  if (line.startsWith('@WAV ')) { handleWav(line.slice(5)); return; }
+  if (line.startsWith('@STR ')) { const v = parseInt(line.slice(5), 10); if (!isNaN(v) && !draggingStrength) showStrength(v); return; }
+  log('rx', line);
+  let m;
+  if ((m = line.match(/Running mode (\d)/))) {
+    const n = +m[1];
+    if (n !== activeMode) { activeMode = n; runStart = now(); beginSegment(n); }
+  } else if (/^Stopped/.test(line)) {
+    if (activeMode) { endSegment(); activeMode = 0; }
+  } else if (/Calibration OK/.test(line)) {
+    $('stCal').textContent = 'OK'; $('stCal').className = 'ok';
+  } else if (/Calibration (FAILED|timed out)/i.test(line)) {
+    $('stCal').textContent = 'Failed'; $('stCal').className = 'bad';
+  } else if (/LSM6DSOX not found/i.test(line)) {
+    meas.present = false; renderMeas();
+  } else if (/DRV2605L not found/i.test(line)) {
+    notice('The Feather can’t find the DRV2605L. Check the four wires (3V, GND, SDA, SCL) and press the Feather’s reset button.');
+  } else if (/ready/i.test(line)) {
+    notice('');
+  }
+  render();
+}
+
+if (!('serial' in navigator)) {
+  notice('This browser can’t talk to USB devices. Open this file in <b>Google Chrome</b> or <b>Microsoft Edge</b> on a computer. You can still tap a mode to preview the patterns.');
+  $('connectBtn').disabled = true;
+}
+navigator.serial && navigator.serial.addEventListener('disconnect', e => {
+  if (port && e.target === port) { log('err', 'Device unplugged'); disconnect(true); }
+});
+
+// ---------------------------------------------------------------------------
+// Accelerometer readings (@ACC / @WAV lines from src/accel_meter.cpp)
+// ---------------------------------------------------------------------------
+const meas = { present: null, last: null, at: 0, hist: [], wave: null, count: 0 };
+const HIST_LEN = 60;
+
+function handleAcc(text) {
+  const o = {};
+  for (const kv of text.split(/\s+/)) {
+    const [k, v] = kv.split('=');
+    if (k) o[k] = (v !== undefined && v !== '' && !isNaN(+v)) ? +v : v;
+  }
+  if (typeof o.pk !== 'number') return;
+  meas.last = o; meas.at = now(); meas.present = true; meas.count++;
+  meas.hist.push({ f: o.f || 0, pk: o.pk });
+  if (meas.hist.length > HIST_LEN) meas.hist.shift();
+  if (meas.count === 1) log('sys', 'Receiving accelerometer readings');
+  renderMeas();
+  drawHist();
+}
+
+function handleWav(text) {
+  const w = text.split(',').map(Number).filter(n => Number.isFinite(n));
+  if (w.length > 4) { meas.wave = w; drawWave(); }
+}
+
+function fmt(v, d) { return typeof v === 'number' ? v.toFixed(d) : '—'; }
+
+function renderMeas() {
+  const o = meas.last;
+  const fresh = o && now() - meas.at < 1500;
+  const st = $('mState'), txt = $('mStateText');
+  if (meas.present === false) { st.className = 'mstate off'; txt.textContent = 'Sensor not found'; }
+  else if (fresh) { st.className = 'mstate live'; txt.textContent = 'Live'; }
+  else if (port && activeMode) { st.className = 'mstate wait'; txt.textContent = 'Measuring…'; }
+  else if (port) { st.className = 'mstate'; txt.textContent = o ? 'Last reading · start a mode to measure' : 'Start a mode to measure'; }
+  else { st.className = 'mstate'; txt.textContent = 'Connect to measure'; }
+
+  if (!o) return;
+  $('mFreq').textContent = o.f > 0 ? fmt(o.f, 1) : '—';
+  $('mPk').textContent = fmt(o.pk, 2);
+  $('mRms').textContent = fmt(o.rms, 2);
+  $('mDisp').textContent = o.f > 0 ? fmt(o.disp, 1) : '—';
+  $('mAxis').textContent = (o.axis || '—') + (o.fs ? ` · ${Math.round(o.fs)} Hz` : '');
+}
+
+function fitCanvas(c) {
+  const r = window.devicePixelRatio || 1;
+  const w = Math.round(c.clientWidth * r), h = Math.round(c.clientHeight * r);
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  return r;
+}
+
+function drawWave() {
+  const c = $('wave'), g = c.getContext('2d'), r = fitCanvas(c);
+  const W = c.width, H = c.height, mid = H / 2;
+  g.clearRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(150,200,255,0.08)'; g.lineWidth = r;
+  g.beginPath(); g.moveTo(0, mid); g.lineTo(W, mid); g.stroke();
+  const w = meas.wave;
+  if (!w) return;
+  const peak = Math.max(50, ...w.map(Math.abs));            // at least ±0.05 g
+  const scale = (H / 2 - 6 * r) / peak;
+  const fs = (meas.last && meas.last.fs) || 1667;
+  $('waveScale').textContent = `±${(peak / 1000).toFixed(2)} g · ${Math.round(w.length / fs * 1000)} ms`;
+  const fill = g.createLinearGradient(0, 0, 0, H);
+  fill.addColorStop(0, 'rgba(142,234,255,0)'); fill.addColorStop(.5, 'rgba(77,157,255,0.18)'); fill.addColorStop(1, 'rgba(142,234,255,0)');
+  g.strokeStyle = '#8eeaff'; g.lineWidth = 1.6 * r; g.lineJoin = 'round';
+  g.shadowColor = 'rgba(142,234,255,0.6)'; g.shadowBlur = 8 * r;
+  g.beginPath();
+  w.forEach((v, i) => {
+    const x = i / (w.length - 1) * W, y = mid - v * scale;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  });
+  g.stroke();
+  g.shadowBlur = 0;
+}
+
+function drawHist() {
+  const c = $('hist'), g = c.getContext('2d'), r = fitCanvas(c);
+  const W = c.width, H = c.height, pad = 6 * r;
+  g.clearRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(150,200,255,0.08)'; g.lineWidth = r;
+  g.beginPath(); g.moveTo(0, H - pad); g.lineTo(W, H - pad); g.stroke();
+  const h = meas.hist;
+  if (h.length < 2) return;
+  const series = (key, color) => {
+    const vals = h.map(p => p[key]).filter(v => v > 0);
+    if (!vals.length) return null;
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (key === 'pk') lo = 0;
+    if (hi - lo < (key === 'f' ? 10 : 0.05)) { const m = (hi + lo) / 2; lo = m - (key === 'f' ? 5 : 0.025); hi = m + (key === 'f' ? 5 : 0.025); }
+    g.strokeStyle = color; g.lineWidth = 1.6 * r; g.lineJoin = 'round';
+    g.beginPath();
+    let started = false;
+    h.forEach((p, i) => {
+      const v = p[key];
+      if (!(v > 0)) { started = false; return; }
+      const x = (HIST_LEN - h.length + i) / (HIST_LEN - 1) * W;
+      const y = H - pad - (v - lo) / (hi - lo) * (H - 2 * pad);
+      started ? g.lineTo(x, y) : g.moveTo(x, y);
+      started = true;
+    });
+    g.stroke();
+    return [lo, hi];
+  };
+  const fr = series('f', '#8eeaff');
+  const ar = series('pk', '#b69bff');
+  const parts = [];
+  if (fr) parts.push(`${fr[0].toFixed(0)}–${fr[1].toFixed(0)} Hz`);
+  if (ar) parts.push(`0–${ar[1].toFixed(2)} g`);
+  $('histRange').textContent = parts.join(' · ') || 'last 60 readings';
+}
+
+window.addEventListener('resize', () => { drawWave(); drawHist(); });
+
+// ---------------------------------------------------------------------------
+// Strength (v<percent> commands; firmware replies with @STR)
+// ---------------------------------------------------------------------------
+const strengthEl = $('strength');
+let draggingStrength = false, strTimer = null, strLastSent = 0;
+
+function showStrength(v) {
+  uiStrength = Math.max(0, Math.min(100, Math.round(v)));
+  strengthEl.value = uiStrength;
+  strengthEl.style.setProperty('--fill', uiStrength + '%');
+  $('strVal').textContent = uiStrength + '%';
+}
+
+async function sendStrength(v) {
+  if (!port) return;
+  try { await send(`v${v}\n`, `strength ${v}%`); } catch (e) { log('err', e.message); }
+}
+
+// Send at most every 150 ms while dragging, and always the final value.
+function queueStrength() {
+  clearTimeout(strTimer);
+  const wait = Math.max(0, 150 - (now() - strLastSent));
+  strTimer = setTimeout(() => { strLastSent = now(); sendStrength(uiStrength); }, wait);
+}
+
+function setUiStrength(v) { showStrength(v); queueStrength(); }
+
+strengthEl.addEventListener('input', () => { draggingStrength = true; setUiStrength(+strengthEl.value); });
+strengthEl.addEventListener('change', () => { draggingStrength = false; setUiStrength(+strengthEl.value); });
+showStrength(100);
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+let busy = false;
+
+async function startMode(n) {
+  if (busy || n === activeMode) return;
+  busy = true;
+  try {
+    if (port) {
+      if (activeMode) { await send(' ', '(stop)'); await sleep(250); }
+      await send(String(n), `mode ${n}`);
+    } else {
+      previewing = true;
+    }
+    activeMode = n; runStart = now(); beginSegment(n);
+    render();
+  } catch (e) { log('err', e.message); }
+  busy = false;
+}
+
+async function stopMode() {
+  if (!activeMode) return;
+  try { if (port) await send(' ', '(stop)'); } catch (e) { log('err', e.message); }
+  endSegment(); activeMode = 0;
+  render();
+}
+
+function stopPreview() {
+  if (previewing && activeMode) { endSegment(); activeMode = 0; }
+  previewing = false;
+}
+
+$('connectBtn').onclick = () => port ? disconnect() : connect();
+$('stopBtn').onclick = stopMode;
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || (e.target.tagName === 'INPUT' && e.target.type !== 'range')) return;
+  if (e.key === '+' || e.key === '=') { setUiStrength(uiStrength + 10); e.preventDefault(); return; }
+  if (e.key === '-' || e.key === '_') { setUiStrength(uiStrength - 10); e.preventDefault(); return; }
+  if (['1', '2', '3'].includes(e.key)) { startMode(+e.key); e.preventDefault(); }
+  else if (e.key === ' ' || e.key === 'Escape') { stopMode(); e.preventDefault(); }
+});
+
+// ---------------------------------------------------------------------------
+// Scope animation
+// ---------------------------------------------------------------------------
+const canvas = $('scope');
+const ctx = canvas.getContext('2d');
+const SPAN_MS = 2500, VIS_HZ = 22;
+let dpr = 1;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(canvas.clientWidth * dpr);
+  canvas.height = Math.round(canvas.clientHeight * dpr);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function frame() {
+  const W = canvas.width, H = canvas.height, mid = H / 2, amp = H * 0.40;
+  const tNow = now();
+  ctx.clearRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle = 'rgba(150,200,255,0.07)';
+  ctx.lineWidth = 1 * dpr;
+  ctx.beginPath();
+  for (let i = 1; i < 10; i++) { const x = W * i / 10; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  ctx.moveTo(0, mid); ctx.lineTo(W, mid);
+  ctx.stroke();
+
+  // envelope fill
+  const step = 2 * dpr;
+  const fill = ctx.createLinearGradient(0, mid - amp, 0, mid + amp);
+  fill.addColorStop(0, 'rgba(142,234,255,0.0)');
+  fill.addColorStop(0.5, 'rgba(77,157,255,0.20)');
+  fill.addColorStop(1, 'rgba(142,234,255,0.0)');
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += step) {
+    const T = tNow - SPAN_MS * (1 - x / W);
+    ctx.lineTo(x, mid - envAt(T) * amp);
+  }
+  for (let x = W; x >= 0; x -= step) {
+    const T = tNow - SPAN_MS * (1 - x / W);
+    ctx.lineTo(x, mid + envAt(T) * amp);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // carrier wave
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, 'rgba(77,157,255,0.15)');
+  grad.addColorStop(0.7, 'rgba(110,200,255,0.85)');
+  grad.addColorStop(1, '#8eeaff');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.8 * dpr;
+  ctx.shadowColor = 'rgba(142,234,255,0.7)';
+  ctx.shadowBlur = 10 * dpr;
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += step / 2) {
+    const T = tNow - SPAN_MS * (1 - x / W);
+    const e = envAt(T);
+    const idle = 0.012 * Math.sin(T / 90) * Math.sin(T / 37);
+    const y = mid - (e * Math.sin(2 * Math.PI * VIS_HZ * T / 1000) + idle) * amp;
+    x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // playhead
+  const eNow = envAt(tNow);
+  ctx.fillStyle = '#8eeaff';
+  ctx.beginPath();
+  ctx.arc(W - 3 * dpr, mid - eNow * Math.sin(2 * Math.PI * VIS_HZ * tNow / 1000) * amp, 3.5 * dpr, 0, Math.PI * 2);
+  ctx.fill();
+
+  // readouts
+  const pct = Math.round(eNow * 100);
+  $('driveVal').textContent = pct + '%';
+  $('driveBar').style.width = pct + '%';
+  if (activeMode) {
+    const s = (tNow - runStart) / 1000;
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = (s % 60).toFixed(1).padStart(4, '0');
+    $('stTime').textContent = `${mm}:${ss}`;
+  }
+  if (tNow - lastMeasUi > 250) { lastMeasUi = tNow; renderMeas(); }
+  requestAnimationFrame(frame);
+}
+let lastMeasUi = 0;
+
+render();
+log('sys', 'Ready. Click "Connect device" and choose the Feather.');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,12 +1,16 @@
 // Mode menu over Serial (115200 baud).
-//   1  continuous buzz
-//   2  strong clicks in succession
-//   3  half-second buzz, then two clicks, repeating
-// Any key ends the running mode and returns to this menu.
+//   1                    continuous buzz
+//   2                    strong clicks in succession
+//   3                    half-second buzz, then two clicks, repeating
+//   v + 0-100 + Enter    set strength in percent, e.g. v60 (works any time)
+//   + / -                strength up / down by 10% (works any time)
+// Any other key ends the running mode and returns to this menu.
+// While a mode runs, the LSM6DSOX (if connected) streams @ACC / @WAV readings.
 
 #include <Arduino.h>
 #include "motor_init.h"
 #include "motor_effects.h"
+#include "accel_meter.h"
 
 // ---- Timing for the modes (tweak to taste) ----
 const uint16_t CLICK_GAP_MS    = 150;   // mode 2: pause between clicks
@@ -14,35 +18,127 @@ const uint16_t PATTERN_BUZZ_MS = 500;   // mode 3: buzz length
 const uint16_t DOUBLE_CLICK_MS = 100;   // mode 3: pause between the two clicks
 const uint16_t PATTERN_GAP_MS  = 300;   // mode 3: pause before the pattern repeats
 
-// ---- Keystroke helpers ----
+// ---- Strength ----
+const uint8_t START_STRENGTH = 100;     // percent, at power-up
+const uint8_t STRENGTH_STEP  = 10;      // percent, for + and -
 
-void flushInput() {
-  delay(20);                                  // let the Enter after a menu key arrive
-  while (Serial.available()) Serial.read();
+uint8_t strengthPct = START_STRENGTH;
+bool buzzActive = false;                // true while a mode wants a continuous buzz
+
+void printMenu();
+
+// ---- Strength helpers ----
+
+// The driver's real-time scale runs 0-127.
+uint8_t buzzLevel() {
+  return (uint8_t)((strengthPct * 127 + 50) / 100);
 }
 
-bool keyPressed() {
-  if (!Serial.available()) return false;
-  flushInput();
-  return true;
+// Clicks come from TI's effect library, which has them at fixed strengths,
+// so pick the closest: Strong Click 100%, 80%, 60% or 30%.
+uint8_t clickEffect() {
+  if (strengthPct >= 90) return Effect::StrongClick;   // 1:  100%
+  if (strengthPct >= 70) return 18;                    // 18: Strong Click 2 - 80%
+  if (strengthPct >= 45) return 19;                    // 19: Strong Click 3 - 60%
+  return 20;                                           // 20: Strong Click 4 - 30%
 }
 
-// Waits ms milliseconds. Returns false if a key was pressed.
+void buzzOn() {
+  buzzActive = true;
+  if (strengthPct > 0) startBuzz(buzzLevel());
+  else stopMotor();
+}
+
+void buzzOff() {
+  buzzActive = false;
+  stopMotor();
+}
+
+void playClick() {
+  if (strengthPct > 0) playEffect(clickEffect());
+}
+
+void playTwoClicks() {
+  if (strengthPct == 0) return;
+  const uint8_t c = clickEffect();
+  const uint8_t twoClicks[] = {c, waitMs(DOUBLE_CLICK_MS), c};
+  playSequence(twoClicks, 3);
+}
+
+void setStrength(int pct) {
+  strengthPct = (uint8_t)constrain(pct, 0, 100);
+  if (buzzActive) buzzOn();               // apply straight away if buzzing
+  Serial.print("Strength: ");
+  Serial.print(strengthPct);
+  Serial.println("%");
+  Serial.print("@STR ");                  // for the control panel
+  Serial.println(strengthPct);
+}
+
+// ---- Keystrokes ----
+
+bool readingStrength = false;           // true after 'v', until Enter
+String strengthDigits;
+
+// Reads whatever has been typed. Strength commands are handled here and
+// never interrupt a mode. Returns:
+//   'x'        stop the running mode (any other key while running)
+//   '1'-'3'    start that mode (only when nothing is running)
+//   0          nothing to do
+char processInput(bool running) {
+  while (Serial.available()) {
+    char c = Serial.read();
+
+    if (readingStrength) {
+      if (c >= '0' && c <= '9') {
+        if (strengthDigits.length() < 3) strengthDigits += c;
+        continue;
+      }
+      readingStrength = false;
+      if (c == '\r' || c == '\n') {
+        if (strengthDigits.length() > 0) setStrength(strengthDigits.toInt());
+        else Serial.println("Type v, then a number 0-100, then Enter (e.g. v60).");
+        continue;
+      }
+      // anything else cancels the strength entry and is handled below
+    }
+
+    if (c == '\r' || c == '\n') continue;
+    if (c == 'v' || c == 'V') { readingStrength = true; strengthDigits = ""; continue; }
+    if (c == '+' || c == '=') { setStrength(strengthPct + STRENGTH_STEP); continue; }
+    if (c == '-' || c == '_') { setStrength((int)strengthPct - STRENGTH_STEP); continue; }
+
+    if (running) return 'x';
+    if (c >= '1' && c <= '3') return c;
+    if (c == ' ') continue;
+
+    Serial.print("Unknown command: ");
+    Serial.println(c);
+    printMenu();
+  }
+  return 0;
+}
+
+bool stopRequested() {
+  return processInput(true) == 'x';
+}
+
+// Waits ms milliseconds. Returns false if the mode should stop.
 bool waitOrAbort(uint16_t ms) {
   unsigned long start = millis();
   while (millis() - start < ms) {
-    if (keyPressed()) return false;
-    delay(5);
+    if (stopRequested()) return false;
+    accelIdle(5);
   }
   return true;
 }
 
-// Waits for the current effect to finish. Returns false if a key was pressed.
+// Waits for the current effect to finish. Returns false if the mode should stop.
 bool waitForEffectOrAbort(uint16_t timeoutMs = 3000) {
   unsigned long start = millis();
   while (isPlaying() && millis() - start < timeoutMs) {
-    if (keyPressed()) return false;
-    delay(5);
+    if (stopRequested()) return false;
+    accelIdle(5);
   }
   return true;
 }
@@ -50,26 +146,25 @@ bool waitForEffectOrAbort(uint16_t timeoutMs = 3000) {
 // ---- Modes ----
 
 void modeContinuousBuzz() {
-  startBuzz(127);
-  while (!keyPressed()) delay(5);
+  buzzOn();
+  while (!stopRequested()) accelIdle(5);
 }
 
 void modeStrongClicks() {
   while (true) {
-    playEffect(Effect::StrongClick);
+    playClick();
     if (!waitForEffectOrAbort()) return;
     if (!waitOrAbort(CLICK_GAP_MS)) return;
   }
 }
 
 void modeBuzzThenClicks() {
-  const uint8_t twoClicks[] = {Effect::StrongClick, waitMs(DOUBLE_CLICK_MS), Effect::StrongClick};
   while (true) {
-    startBuzz(127);
+    buzzOn();
     if (!waitOrAbort(PATTERN_BUZZ_MS)) return;
-    stopMotor();
+    buzzOff();
 
-    playSequence(twoClicks, 3);
+    playTwoClicks();
     if (!waitForEffectOrAbort()) return;
     if (!waitOrAbort(PATTERN_GAP_MS)) return;
   }
@@ -79,25 +174,29 @@ void modeBuzzThenClicks() {
 
 void printMenu() {
   Serial.println();
-  Serial.println("Select a mode (any key stops it):");
+  Serial.print("Strength: ");
+  Serial.print(strengthPct);
+  Serial.println("%   (v + number + Enter to set, e.g. v60; + / - to step)");
+  Serial.println("Select a mode (any other key stops it):");
   Serial.println("  1  Continuous buzz");
   Serial.println("  2  Strong clicks");
   Serial.println("  3  Buzz, then two clicks (repeating)");
 }
 
 void runMode(char c) {
-  flushInput();   // so the Enter after the number doesn't end the mode instantly
   Serial.print("Running mode ");
   Serial.print(c);
   Serial.println(". Press any key to stop.");
 
+  accelStart();
   switch (c) {
     case '1': modeContinuousBuzz(); break;
     case '2': modeStrongClicks();   break;
     case '3': modeBuzzThenClicks(); break;
   }
+  accelStop();
 
-  stopMotor();
+  buzzOff();
   Serial.println("Stopped.");
 }
 
@@ -109,20 +208,16 @@ void setup() {
     while (true) delay(1000);
   }
   Serial.println("DRV2605L ready.");
+  initAccel();
+  Serial.print("@STR ");
+  Serial.println(strengthPct);
   printMenu();
 }
 
 void loop() {
-  if (!Serial.available()) return;
-  char c = Serial.read();
-
-  if (c == '\r' || c == '\n' || c == ' ') return;
-
+  char c = processInput(false);
   if (c >= '1' && c <= '3') {
     runMode(c);
-  } else {
-    Serial.print("Unknown mode: ");
-    Serial.println(c);
+    printMenu();
   }
-  printMenu();
 }
