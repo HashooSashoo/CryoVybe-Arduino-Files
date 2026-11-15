@@ -109,20 +109,10 @@ void setup() {
     while (true) delay(1000);
   }
   Serial.println("DRV2605L ready.");
-  printMenu();
+  Serial.println("Starting continuous vibration.");
+  startBuzz(127);
 }
 
 void loop() {
-  if (!Serial.available()) return;
-  char c = Serial.read();
-
-  if (c == '\r' || c == '\n' || c == ' ') return;
-
-  if (c >= '1' && c <= '3') {
-    runMode(c);
-  } else {
-    Serial.print("Unknown mode: ");
-    Serial.println(c);
-  }
-  printMenu();
+  // The motor continues vibrating until power is removed.
 }
