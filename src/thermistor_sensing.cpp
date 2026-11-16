@@ -37,8 +37,9 @@ const float RTD_R_FIXED = 10000.0;    // measure yours. 10k keeps Pt1000 current
 
 // ================== MENU STATE ==================
 enum Mode { MODE_NTC, MODE_RTD, MODE_BOTH };
-Mode mode = MODE_NTC;
+Mode mode = MODE_RTD;                 // starts in RTD mode
 bool useFahrenheit = true;            // your original script printed °F
+bool debugRaw = true;                 // print raw ADC + resistance (toggle with 'd')
 
 // ---------------------------------------------------------------
 float readAdcAvg(int pin) {
@@ -101,6 +102,21 @@ void printReading(const char *label, float c) {
   Serial.println(value, 2);
 }
 
+// Prints the raw ADC average, the voltage it implies (3.3 V ref), and the
+// resistance the divider math gives. Use it to see what the pin actually sees.
+void printDebug(const char *label, int pin, float rFixed) {
+  float raw = readAdcAvg(pin);
+  Serial.print(label);
+  Serial.print(" raw=");
+  Serial.print(raw, 1);
+  Serial.print("  V=");
+  Serial.print(raw / ADC_MAX * 3.3, 3);
+  Serial.print("  R=");
+  float r = dividerResistance(raw, rFixed);
+  if (isnan(r)) Serial.println("out of range (pin at 0 V or 3.3 V)");
+  else          Serial.println(r, 1);
+}
+
 void printMenu() {
   Serial.println();
   Serial.println(F("------ Temperature sensor menu ------"));
@@ -108,6 +124,7 @@ void printMenu() {
   Serial.println(F("  2  RTD (M310)"));
   Serial.println(F("  3  Both"));
   Serial.println(F("  c  Celsius     f  Fahrenheit"));
+  Serial.println(F("  d  Debug on/off (raw ADC + resistance)"));
   Serial.println(F("  m  Show this menu"));
 #ifdef USE_MAX31865
   Serial.println(F("  (RTD via MAX31865)"));
@@ -126,6 +143,10 @@ void handleSerial() {
       case '3': mode = MODE_BOTH; Serial.println(F("Mode: both")); break;
       case 'c': case 'C': useFahrenheit = false; Serial.println(F("Units: °C")); break;
       case 'f': case 'F': useFahrenheit = true;  Serial.println(F("Units: °F")); break;
+      case 'd': case 'D':
+        debugRaw = !debugRaw;
+        Serial.println(debugRaw ? F("Debug: on") : F("Debug: off"));
+        break;
       case 'm': case 'M': case '?': printMenu(); break;
       default: break;                 // ignore newlines and anything else
     }
@@ -147,6 +168,13 @@ void loop() {
 
   if (mode == MODE_NTC || mode == MODE_BOTH) printReading("ntc", readNtcC());
   if (mode == MODE_RTD || mode == MODE_BOTH) printReading("rtd", readRtdC());
+
+  if (debugRaw) {
+    if (mode == MODE_NTC || mode == MODE_BOTH) printDebug("ntc", NTC_PIN, NTC_R_FIXED);
+#ifndef USE_MAX31865
+    if (mode == MODE_RTD || mode == MODE_BOTH) printDebug("rtd", RTD_PIN, RTD_R_FIXED);
+#endif
+  }
 
   delay(100);
 }
