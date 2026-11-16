@@ -30,7 +30,7 @@ const int   MAX_CS   = 10;            // chip-select pin, hardware SPI for the r
 const float MAX_RREF = 4300.0;        // reference resistor on the board: 4300 (Pt1000) or 430 (Pt100)
 Adafruit_MAX31865 rtdAmp(MAX_CS);
 #else
-const int   RTD_PIN     = A1;
+const int   RTD_PIN     = A0;          // same pin as the NTC: connect one sensor at a time
 const float RTD_R_FIXED = 10000.0;    // measure yours. 10k keeps Pt1000 current ~0.3 mA at 3.3 V
                                       // (datasheet max for Pt1000) so self-heating stays < ~0.04 K
 #endif
