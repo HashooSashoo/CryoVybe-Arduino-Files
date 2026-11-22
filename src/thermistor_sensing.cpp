@@ -15,29 +15,30 @@ const int   N_SAMPLES = 64;      // readings averaged per measurement
 
 // ================== NTC THERMISTOR ==================
 const int   NTC_PIN       = A0;
-const float NTC_R_FIXED   = 100.0;    // measure yours with a multimeter
-const float NTC_R_NOMINAL = 13000.0;  // thermistor resistance at 25 °C
+const float NTC_R_FIXED   = 4700.0;   // measure yours with a multimeter (same resistor as the RTD)
+const float NTC_R_NOMINAL = 10000.0;  // thermistor resistance at 25 °C
 const float NTC_BETA      = 3892.0;   // from the thermistor's datasheet
 const float NTC_T_NOMINAL = 298.15;   // 25 °C in Kelvin
 
 // ================== RTD (YAGEO Nexensos M310) ==================
-const float RTD_R0 = 1000.0;          // 1000 for Pt1000, 100 for Pt100 (resistance at 0 °C)
+const float RTD_R0 = 100.0;           // 100 for Pt100, 1000 for Pt1000 (resistance at 0 °C)
 const float CVD_A  = 3.9083e-3;       // IEC 60751 Callendar-Van Dusen coefficients
 const float CVD_B  = -5.775e-7;
 
 #ifdef USE_MAX31865
 const int   MAX_CS   = 10;            // chip-select pin, hardware SPI for the rest
-const float MAX_RREF = 4300.0;        // reference resistor on the board: 4300 (Pt1000) or 430 (Pt100)
+const float MAX_RREF = 430.0;         // reference resistor on the board: 430 (Pt100) or 4300 (Pt1000)
 Adafruit_MAX31865 rtdAmp(MAX_CS);
 #else
 const int   RTD_PIN     = A0;          // same pin as the NTC: connect one sensor at a time
-const float RTD_R_FIXED = 10000.0;    // measure yours. 10k keeps Pt1000 current ~0.3 mA at 3.3 V
-                                      // (datasheet max for Pt1000) so self-heating stays < ~0.04 K
+const float RTD_R_FIXED = 4700.0;     // measure yours. 4.7k keeps Pt100 current ~0.7 mA at 3.3 V
+                                      // (datasheet: 0.3-1 mA for Pt100). Coarse (~few °C per ADC
+                                      // step); use the MAX31865 for real accuracy.
 #endif
 
 // ================== MENU STATE ==================
 enum Mode { MODE_NTC, MODE_RTD, MODE_BOTH };
-Mode mode = MODE_RTD;                 // starts in RTD mode
+Mode mode = MODE_NTC;                 // starts in NTC mode
 bool useFahrenheit = true;            // your original script printed °F
 bool debugRaw = true;                 // print raw ADC + resistance (toggle with 'd')
 
@@ -84,7 +85,14 @@ float readRtdC() {
 #else
   float r = dividerResistance(readAdcAvg(RTD_PIN), RTD_R_FIXED);
   if (isnan(r)) return NAN;
-  return rtdResistanceToC(r);
+  float c = rtdResistanceToC(r);
+  if (isnan(c) || c < -70.0 || c > 550.0) {   // M310 rated -70..+550 °C
+    Serial.print(F("rtd: R="));
+    Serial.print(r, 1);
+    Serial.println(F(" ohm is out of RTD range (wrong sensor, R0, or fixed resistor?)"));
+    return NAN;
+  }
+  return c;
 #endif
 }
 
@@ -92,7 +100,7 @@ float readRtdC() {
 void printReading(const char *label, float c) {
   if (isnan(c)) {
     Serial.print(label);
-    Serial.println(": sensor error (open/short/fault)");
+    Serial.println(": sensor error (open, short, out of range, or fault)");
     return;
   }
   float value = useFahrenheit ? c * 9.0 / 5.0 + 32.0 : c;
