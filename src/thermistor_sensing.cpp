@@ -38,7 +38,7 @@ const float RTD_R_FIXED = 4700.0;     // measure yours. 4.7k keeps Pt100 current
 
 // ================== MENU STATE ==================
 enum Mode { MODE_NTC, MODE_RTD, MODE_BOTH };
-Mode mode = MODE_NTC;                 // starts in NTC mode
+Mode mode = MODE_RTD;                 // starts in NTC mode
 bool useFahrenheit = true;            // your original script printed °F
 bool debugRaw = true;                 // print raw ADC + resistance (toggle with 'd')
 
