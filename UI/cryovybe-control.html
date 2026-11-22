@@ -139,6 +139,24 @@
   }
   .stop:not(:disabled):hover { background: rgba(255,111,142,.16); box-shadow: 0 0 30px rgba(255,111,142,.2); }
 
+  /* ---------- Random mode ---------- */
+  .random { margin-top: 14px; padding: 14px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; }
+  .random .txt { flex: 1; min-width: 0; }
+  .random .txt b { display: block; font-size: 14.5px; font-weight: 600; }
+  .random .txt small { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+  .random .cd { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ice); min-width: 3.2em; text-align: right; }
+  .random .rbar { display: block; height: 3px; border-radius: 3px; background: rgba(150,200,255,.12); margin-top: 8px; overflow: hidden; }
+  .random .rbar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--ice2), var(--ice)); }
+  .random:not(.on) .rbar, .random:not(.on) .cd { visibility: hidden; }
+  .random.on { border-color: rgba(142,234,255,.6); box-shadow: 0 0 0 1px rgba(142,234,255,.25), 0 10px 40px rgba(77,157,255,.2); }
+  .switch { position: relative; width: 44px; height: 24px; flex: none; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch span { position: absolute; inset: 0; border-radius: 999px; background: rgba(150,200,255,.15); border: 1px solid var(--line); transition: background .2s; pointer-events: none; }
+  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--mute); transition: transform .2s, background .2s; }
+  .switch input:checked + span { background: rgba(142,234,255,.3); border-color: var(--ice); }
+  .switch input:checked + span::after { transform: translateX(20px); background: var(--ice); box-shadow: 0 0 10px var(--ice); }
+  .switch input:focus-visible + span { outline: 2px solid var(--ice); outline-offset: 3px; }
+
   /* ---------- Strength ---------- */
   .strength { margin-top: 14px; padding: 16px 20px 14px; }
   .strength-head { display: flex; justify-content: space-between; align-items: baseline; }
@@ -364,13 +382,22 @@
       </section>
 
       <div class="modes" id="modes"></div>
+      <label class="card random" id="randomCard">
+        <span class="switch"><input type="checkbox" id="randomToggle"><span></span></span>
+        <span class="txt">
+          <b>Random mode</b>
+          <small id="randomSub">Every 3 s, switch to one of the other two modes</small>
+          <span class="rbar"><i id="randomBar"></i></span>
+        </span>
+        <span class="cd" id="randomCd"></span>
+      </label>
       <section class="card strength">
         <div class="strength-head"><label class="label" for="strength">Strength</label><b id="strVal">100%</b></div>
         <input type="range" id="strength" min="0" max="100" step="5" value="100">
         <div class="strength-foot"><span>Off</span><span>Clicks step through 30 · 60 · 80 · 100%</span><span>Max</span></div>
       </section>
       <button class="stop" id="stopBtn" disabled>Stop motor</button>
-      <div class="hint">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> start a mode · <kbd>+</kbd> <kbd>−</kbd> strength · <kbd>Space</kbd> stop · <kbd>R</kbd> start / stop recording</div>
+      <div class="hint">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> start a mode · <kbd>X</kbd> random mode · <kbd>+</kbd> <kbd>−</kbd> strength · <kbd>Space</kbd> stop · <kbd>R</kbd> start / stop recording</div>
     </main>
 
     <aside class="side">
@@ -629,6 +656,7 @@ async function disconnect(silent = false) {
   try { if (port) await port.close(); } catch (_) {}
   port = null; writer = null; reader = null;
   if (rec.on) finishRecording('connection closed');
+  setRandom(false);
   if (activeMode) { endSegment(); activeMode = 0; }
   if (!silent) log('sys', 'Disconnected');
   render();
@@ -869,12 +897,50 @@ async function startMode(n) {
       previewing = true;
     }
     activeMode = n; runStart = now(); beginSegment(n);
+    if (random.on) scheduleRandom();       // every switch (auto or manual) restarts the 3 s
     render();
   } catch (e) { log('err', e.message); }
   busy = false;
 }
 
+// ---- Random mode: every RANDOM_MS, jump to one of the two other modes ----
+const RANDOM_MS = 3000;
+const random = { on: false, timer: null, next: 0 };
+
+function scheduleRandom() {
+  clearTimeout(random.timer);
+  random.next = now() + RANDOM_MS;
+  random.timer = setTimeout(randomStep, RANDOM_MS);
+}
+
+async function randomStep() {
+  if (!random.on) return;
+  if (busy) { random.timer = setTimeout(randomStep, 50); return; }
+  const others = [1, 2, 3].filter(m => m !== activeMode);
+  const pick = others[Math.floor(Math.random() * others.length)];
+  await startMode(pick);
+  if (random.on && activeMode !== pick) scheduleRandom();   // send failed; keep trying
+}
+
+function setRandom(on) {
+  const was = random.on;
+  random.on = on;
+  $('randomToggle').checked = on;
+  $('randomCard').classList.toggle('on', on);
+  clearTimeout(random.timer);
+  if (on) {
+    log('sys', 'Random mode on');
+    if (activeMode) scheduleRandom(); else randomStep();
+  } else {
+    random.next = 0;
+    if (was) log('sys', 'Random mode off');
+  }
+}
+
+$('randomToggle').addEventListener('change', e => setRandom(e.target.checked));
+
 async function stopMode() {
+  setRandom(false);
   if (!activeMode) return;
   try { if (port) await send(' ', '(stop)'); } catch (e) { log('err', e.message); }
   endSegment(); activeMode = 0;
@@ -882,6 +948,7 @@ async function stopMode() {
 }
 
 function stopPreview() {
+  if (previewing) setRandom(false);
   if (previewing && activeMode) { endSegment(); activeMode = 0; }
   previewing = false;
 }
@@ -894,6 +961,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'r' || e.key === 'R') { rec.on ? stopRecording() : startRecording(); e.preventDefault(); return; }
   if (e.key === '+' || e.key === '=') { setUiStrength(uiStrength + 10); e.preventDefault(); return; }
   if (e.key === '-' || e.key === '_') { setUiStrength(uiStrength - 10); e.preventDefault(); return; }
+  if (e.key === 'x' || e.key === 'X') { setRandom(!random.on); e.preventDefault(); return; }
   if (['1', '2', '3'].includes(e.key)) { startMode(+e.key); e.preventDefault(); }
   else if (e.key === ' ' || e.key === 'Escape') { stopMode(); e.preventDefault(); }
 });
@@ -1750,6 +1818,11 @@ function frame() {
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = (s % 60).toFixed(1).padStart(4, '0');
     $('stTime').textContent = `${mm}:${ss}`;
+  }
+  if (random.on && random.next) {
+    const left = Math.max(0, random.next - tNow);
+    $('randomCd').textContent = (left / 1000).toFixed(1) + ' s';
+    $('randomBar').style.width = (100 - left / RANDOM_MS * 100) + '%';
   }
   if (tNow - lastMeasUi > 250) { lastMeasUi = tNow; renderMeas(); }
   if (rec.on) renderRecLive();
