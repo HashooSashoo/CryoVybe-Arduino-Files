@@ -216,6 +216,84 @@
   .sw { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin: 0 5px 0 10px; }
   .sw.f { background: var(--ice); margin-left: 0; } .sw.a { background: #b69bff; }
   .meas-empty { font-size: 12.5px; color: var(--faint); margin-top: 10px; line-height: 1.5; }
+
+  /* ---------- Recorder ---------- */
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .rec { padding: 18px 20px; }
+  .rec-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .mstate.rec { color: #ffc2cf; } .mstate.rec .dot { background: var(--bad); box-shadow: 0 0 10px var(--bad); animation: blink 1s infinite; }
+  .rec-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .recbtn {
+    padding: 12px 10px; border-radius: 12px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  }
+  .recbtn:not(:disabled):hover { background: var(--panel-hi); }
+  .recbtn.start { background: rgba(255,111,142,.10); border-color: rgba(255,111,142,.4); color: #ffc2cf; }
+  .recbtn.start:not(:disabled):hover { background: rgba(255,111,142,.18); box-shadow: 0 0 24px rgba(255,111,142,.2); }
+  .recbtn:focus-visible, .chip:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+  .recbtn .rdot { width: 9px; height: 9px; border-radius: 50%; background: var(--bad); }
+  .recbtn .sq { width: 9px; height: 9px; border-radius: 2px; background: currentColor; }
+  .rec-live { display: flex; justify-content: space-between; margin-top: 14px; }
+  .rec-live b { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 17px; display: block; margin-top: 3px; }
+  .rec-live div:last-child { text-align: right; }
+  #recLive { height: 84px; margin-top: 10px; border-radius: 10px; background: rgba(0,0,0,.28); }
+  .rec-cap { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--faint); margin-top: 4px; font-family: "JetBrains Mono", monospace; }
+  .rec-list-head { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .linkbtn { background: none; color: var(--mute); font-size: 12px; padding: 2px 4px; }
+  .linkbtn:hover { color: var(--text); }
+  .rec-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 320px; overflow-y: auto; }
+  .rec-list::-webkit-scrollbar { width: 6px; } .rec-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  .ritem { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0,0,0,.15); }
+  .ritem.open { border-color: rgba(142,234,255,.5); background: rgba(142,234,255,.06); }
+  .ritem input {
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--text); background: transparent;
+    border: 1px solid transparent; border-radius: 6px; padding: 2px 4px; margin-left: -5px; width: 100%;
+  }
+  .ritem input:hover { border-color: var(--line); }
+  .ritem input:focus { outline: none; border-color: var(--ice2); background: rgba(0,0,0,.3); }
+  .ritem .meta { font-size: 11px; color: var(--mute); font-family: "JetBrains Mono", monospace; margin-top: 2px; }
+  .ritem .acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .chip { font-size: 11.5px; padding: 5px 10px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); color: var(--text); }
+  .chip:hover { background: var(--panel-hi); border-color: rgba(142,234,255,.3); }
+  .chip.pri { color: var(--ice); border-color: rgba(142,234,255,.35); }
+  .chip.danger { color: #ffc2cf; }
+  .chip.danger.confirm { background: rgba(255,111,142,.2); border-color: rgba(255,111,142,.55); }
+  .empty { font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+  /* ---------- Analysis ---------- */
+  .ana { padding: 18px 20px 20px; margin-top: 20px; }
+  .ana-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .ana-title { font-size: 21px; font-weight: 600; margin-top: 6px; }
+  .ana-title small { display: block; font-size: 11.5px; font-weight: 400; color: var(--mute); margin-top: 4px; font-family: "JetBrains Mono", monospace; }
+  .ana-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .ana-ctrls {
+    display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 16px; padding: 12px 14px; align-items: flex-end;
+    border-radius: 12px; background: rgba(0,0,0,.18); border: 1px solid var(--line);
+  }
+  .ctl { display: flex; flex-direction: column; gap: 6px; }
+  .ctl select {
+    font: inherit; font-size: 12.5px; color: var(--text); background: #0b1324;
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+  }
+  .ctl select:focus-visible { outline: 2px solid var(--ice); outline-offset: 1px; }
+  .ctl.range { min-width: 150px; flex: 1; max-width: 240px; }
+  .ctl.range input { margin: 0; height: 22px; }
+  .ctl.range .label b { color: var(--ice); font-weight: 500; letter-spacing: 0; text-transform: none; font-family: "JetBrains Mono", monospace; }
+  .ana-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px 16px; margin-top: 16px; }
+  .ana-stats div { display: flex; flex-direction: column; gap: 4px; }
+  .ana-stats b { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: 15px; }
+  .ana-stats b.hi { color: var(--ice); }
+  .plots { position: relative; margin-top: 16px; user-select: none; -webkit-user-select: none; touch-action: none; }
+  #anaWave { height: 110px; margin-top: 0; cursor: crosshair; }
+  #anaSpec { height: 290px; margin-top: 4px; cursor: crosshair; }
+  #anaPsd { height: 170px; margin-top: 0; }
+  .xhair { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(232,242,255,.55); pointer-events: none; }
+  .selbox { position: absolute; top: 0; bottom: 0; background: rgba(142,234,255,.12); border-left: 1px solid var(--ice); border-right: 1px solid var(--ice); pointer-events: none; }
+  .ana-read { font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--mute); margin-top: 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 17px; }
+  .ana-read span:first-child { color: var(--text); }
+  .ana-sub { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 18px; font-size: 11px; color: var(--mute); }
+  .sw.x { background: #ff9bb0; margin-left: 0; } .sw.y { background: #7af0c0; } .sw.z { background: #8eeaff; }
 </style>
 </head>
 <body>
@@ -292,7 +370,7 @@
         <div class="strength-foot"><span>Off</span><span>Clicks step through 30 · 60 · 80 · 100%</span><span>Max</span></div>
       </section>
       <button class="stop" id="stopBtn" disabled>Stop motor</button>
-      <div class="hint">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> start a mode · <kbd>+</kbd> <kbd>−</kbd> strength · <kbd>Space</kbd> stop</div>
+      <div class="hint">Shortcuts: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> start a mode · <kbd>+</kbd> <kbd>−</kbd> strength · <kbd>Space</kbd> stop · <kbd>R</kbd> start / stop recording</div>
     </main>
 
     <aside class="side">
@@ -301,6 +379,28 @@
         <div class="stat"><span class="label">Active mode</span><b id="stMode">—</b></div>
         <div class="stat"><span class="label">Run time</span><b class="mono" id="stTime">00:00.0</b></div>
         <div class="stat"><span class="label">Calibration</span><b id="stCal">—</b></div>
+      </section>
+      <section class="card rec">
+        <div class="rec-head">
+          <span class="label">Recorder</span>
+          <span class="mstate" id="recState"><span class="dot"></span><span id="recStateText">Connect to record</span></span>
+        </div>
+        <div class="rec-btns">
+          <button class="recbtn start" id="recStart" disabled><span class="rdot"></span>Start</button>
+          <button class="recbtn" id="recStop" disabled><span class="sq"></span>Stop</button>
+        </div>
+        <div class="rec-live">
+          <div><span class="label">Length</span><b id="recTime">00:00.0</b></div>
+          <div><span class="label">Samples</span><b id="recN">0</b></div>
+        </div>
+        <canvas id="recLive" aria-label="Live spectrogram while recording"></canvas>
+        <div class="rec-cap"><span id="recCapL">live spectrogram</span><span id="recCapR">0–833 Hz</span></div>
+        <div class="rec-list-head">
+          <span class="label">Saved recordings</span>
+          <button class="linkbtn" id="importBtn">Import CSV</button>
+          <input type="file" id="importFile" accept=".csv,text/csv" hidden>
+        </div>
+        <div class="rec-list" id="recList"></div>
       </section>
       <section class="card console">
         <div class="console-head">
@@ -311,6 +411,48 @@
       </section>
     </aside>
   </div>
+
+  <section class="card ana" id="ana" hidden>
+    <div class="ana-head">
+      <div>
+        <div class="label">Recording analysis</div>
+        <div class="ana-title" id="anaName">—<small id="anaMeta"></small></div>
+      </div>
+      <div class="ana-acts">
+        <button class="chip" id="anaCsv">Save data CSV</button>
+        <button class="chip" id="anaPng">Save image</button>
+        <button class="chip" id="anaSpecCsv">Spectrogram CSV</button>
+        <button class="chip" id="anaPsdCsv">Spectrum CSV</button>
+        <button class="chip" id="anaClose" aria-label="Close analysis">Close</button>
+      </div>
+    </div>
+    <div class="ana-ctrls">
+      <label class="ctl"><span class="label">Signal</span>
+        <select id="anaAxis"><option value="all">All axes</option><option value="x">X</option><option value="y">Y</option><option value="z">Z</option></select></label>
+      <label class="ctl"><span class="label">Window</span>
+        <select id="anaWin"><option value="256">256</option><option value="512" selected>512</option><option value="1024">1024</option><option value="2048">2048</option><option value="4096">4096</option></select></label>
+      <label class="ctl"><span class="label">Overlap</span>
+        <select id="anaOv"><option value="0.5">50%</option><option value="0.75" selected>75%</option><option value="0.875">87.5%</option></select></label>
+      <label class="ctl"><span class="label">Max freq</span>
+        <select id="anaFmax"><option value="0">Full</option><option value="500">500 Hz</option><option value="300">300 Hz</option><option value="150">150 Hz</option><option value="60">60 Hz</option></select></label>
+      <label class="ctl"><span class="label">Colors</span>
+        <select id="anaCmap"><option value="ice">Ice</option><option value="magma">Magma</option><option value="gray">Gray</option></select></label>
+      <label class="ctl range"><span class="label">Range <b id="anaRangeVal">70 dB</b></span>
+        <input type="range" id="anaRange" min="30" max="120" step="5" value="70"></label>
+      <button class="chip" id="anaReset">Reset zoom</button>
+    </div>
+    <div class="ana-stats" id="anaStats"></div>
+    <div class="plots" id="plots">
+      <div class="plot-label"><span id="anaWaveLeg"></span><span id="anaWaveScale"></span></div>
+      <canvas id="anaWave" aria-label="Recorded acceleration"></canvas>
+      <canvas id="anaSpec" aria-label="Spectrogram of the recording"></canvas>
+      <div class="xhair" id="xhair" hidden></div>
+      <div class="selbox" id="selbox" hidden></div>
+    </div>
+    <div class="ana-read"><span id="anaRead">Drag across the plot to zoom in · double-click to zoom out</span><span id="anaInfo"></span></div>
+    <div class="ana-sub"><span class="label">Average spectrum of the visible range</span><span id="anaPeak"></span></div>
+    <canvas id="anaPsd" aria-label="Average power spectrum"></canvas>
+  </section>
 </div>
 
 <script>
@@ -420,6 +562,7 @@ function render() {
   else if (activeMode) { st.textContent = 'Vibrating'; st.className = 'ok'; }
   else { st.textContent = 'Ready'; st.className = ''; }
   renderMeas();
+  renderRec();
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +628,7 @@ async function disconnect(silent = false) {
   try { if (writer) { writer.releaseLock(); } } catch (_) {}
   try { if (port) await port.close(); } catch (_) {}
   port = null; writer = null; reader = null;
+  if (rec.on) finishRecording('connection closed');
   if (activeMode) { endSegment(); activeMode = 0; }
   if (!silent) log('sys', 'Disconnected');
   render();
@@ -519,6 +663,7 @@ async function readLoop() {
 function handleLine(line) {
   if (!line.trim()) return;
   line = line.trim();
+  if (line.startsWith('@RAW')) { handleRaw(line); return; }
   if (line.startsWith('@ACCEL')) {               // sensor status at startup
     meas.present = /ok/.test(line);
     log('sys', meas.present ? 'Accelerometer found' : 'Accelerometer not found');
@@ -533,8 +678,12 @@ function handleLine(line) {
   if ((m = line.match(/Running mode (\d)/))) {
     const n = +m[1];
     if (n !== activeMode) { activeMode = n; runStart = now(); beginSegment(n); }
+    recEvent(n);
   } else if (/^Stopped/.test(line)) {
     if (activeMode) { endSegment(); activeMode = 0; }
+    recEvent(0);
+  } else if (/^Unknown command: r/.test(line) && rec.on && !rec.started) {
+    recFirmwareTooOld();
   } else if (/Calibration OK/.test(line)) {
     $('stCal').textContent = 'OK'; $('stCal').className = 'ok';
   } else if (/Calibration (FAILED|timed out)/i.test(line)) {
@@ -741,12 +890,781 @@ $('connectBtn').onclick = () => port ? disconnect() : connect();
 $('stopBtn').onclick = stopMode;
 
 document.addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || (e.target.tagName === 'INPUT' && e.target.type !== 'range')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.tagName === 'SELECT' || (e.target.tagName === 'INPUT' && e.target.type !== 'range')) return;
+  if (e.key === 'r' || e.key === 'R') { rec.on ? stopRecording() : startRecording(); e.preventDefault(); return; }
   if (e.key === '+' || e.key === '=') { setUiStrength(uiStrength + 10); e.preventDefault(); return; }
   if (e.key === '-' || e.key === '_') { setUiStrength(uiStrength - 10); e.preventDefault(); return; }
   if (['1', '2', '3'].includes(e.key)) { startMode(+e.key); e.preventDefault(); }
   else if (e.key === ' ' || e.key === 'Escape') { stopMode(); e.preventDefault(); }
 });
+
+// ---------------------------------------------------------------------------
+// Signal processing (shared by the live view and the analyzer)
+// ---------------------------------------------------------------------------
+function fftInPlace(re, im) {            // length must be a power of two
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { let t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const half = len >> 1, ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let s = 0; s < n; s += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < half; k++) {
+        const a = s + k, b = a + half;
+        const tr = re[b] * cr - im[b] * ci, ti = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        const ncr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = ncr;
+      }
+    }
+  }
+}
+
+const hannCache = {};
+function hann(n) {
+  if (!hannCache[n]) {
+    const w = new Float64Array(n); let pow = 0;
+    for (let i = 0; i < n; i++) { w[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (n - 1))); pow += w[i] * w[i]; }
+    hannCache[n] = { w, pow };
+  }
+  return hannCache[n];
+}
+
+// Adds the one-sided power spectral density (g²/Hz) of src[start, start+n)
+// to acc. The frame's mean (gravity) is removed first; past the end is zero.
+function addPsd(src, start, n, fs, acc, re, im) {
+  const { w, pow } = hann(n);
+  const end = Math.min(src.length, start + n);
+  let mean = 0;
+  for (let i = start; i < end; i++) mean += src[i];
+  mean /= Math.max(1, end - start);
+  for (let i = 0; i < n; i++) { const j = start + i; re[i] = j < end ? (src[j] - mean) * w[i] : 0; im[i] = 0; }
+  fftInPlace(re, im);
+  const k = 1 / (fs * pow), half = n >> 1;
+  for (let b = 0; b <= half; b++) acc[b] += (re[b] * re[b] + im[b] * im[b]) * k * (b === 0 || b === half ? 1 : 2);
+}
+
+const toDb = p => 10 * Math.log10(p + 1e-20);
+
+function makeLut(stops) {
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const pts = stops.map(rgb), lut = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255 * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(t)), f = t - k;
+    for (let c = 0; c < 3; c++) lut[i * 3 + c] = pts[k][c] + (pts[k + 1][c] - pts[k][c]) * f;
+  }
+  return lut;
+}
+const LUTS = {
+  ice: makeLut(['#050912', '#0f1d4a', '#1f4fb8', '#4d9dff', '#8eeaff', '#f4fdff']),
+  magma: makeLut(['#000004', '#2c115f', '#721f81', '#b73779', '#f1605d', '#feb078', '#fcfdbf']),
+  gray: makeLut(['#000000', '#ffffff']),
+};
+const lutCss = (lut, i) => `rgb(${lut[i * 3]},${lut[i * 3 + 1]},${lut[i * 3 + 2]})`;
+const AXIS_COLORS = { x: '#ff9bb0', y: '#7af0c0', z: '#8eeaff' };
+
+// Canvas set up for drawing in CSS pixels.
+function prep(c) {
+  const r = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * r) || c.height !== Math.round(h * r)) { c.width = Math.round(w * r); c.height = Math.round(h * r); }
+  const g = c.getContext('2d');
+  g.setTransform(r, 0, 0, r, 0, 0);
+  g.clearRect(0, 0, w, h);
+  return { g, w, h };
+}
+function niceTicks(lo, hi, n) {
+  const raw = (hi - lo) / n || 1, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+  const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  const out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) out.push(+v.toFixed(10));
+  return { out, dec: Math.max(0, -Math.floor(Math.log10(step) + 1e-9)) };
+}
+function fmtDur(s) {
+  const mm = String(Math.floor(s / 60)).padStart(2, '0');
+  return `${mm}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+}
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const fileBase = r => (r.name || 'recording').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'recording';
+
+// ---------------------------------------------------------------------------
+// Recorder ('r' / 'e' commands; @RAW lines from src/accel_meter.cpp)
+// ---------------------------------------------------------------------------
+const REC_MAX_S = 600;              // stop automatically after 10 minutes
+const LIVE_N = 256, LIVE_HOP = 128, LIVE_COL_PX = 2;
+const rec = { on: false, started: false, stopping: false, fs: 1666.67, lsb: 0.000488,
+              x: [], y: [], z: [], events: [], gaps: [], t0: 0, timer: null, startMode: 0 };
+const live = { buf: [[], [], []], top: -Infinity, re: new Float64Array(LIVE_N), im: new Float64Array(LIVE_N), acc: new Float64Array(LIVE_N / 2 + 1) };
+let recordings = [];                 // newest first
+
+async function startRecording() {
+  if (!port || rec.on || busy) return;
+  Object.assign(rec, { on: true, started: false, stopping: false, x: [], y: [], z: [], events: [], gaps: [], t0: now(), startMode: activeMode });
+  if (activeMode) rec.events.push({ i: 0, mode: activeMode });
+  live.buf = [[], [], []]; live.top = -Infinity;
+  clearLive();
+  renderRec();
+  try { await send('r', 'start recording'); } catch (e) { log('err', e.message); }
+  clearTimeout(rec.timer);
+  rec.timer = setTimeout(() => { if (rec.on && !rec.started) recFirmwareTooOld(); }, 2000);
+}
+
+function recFirmwareTooOld() {
+  rec.on = false; clearTimeout(rec.timer);
+  notice('The board didn’t respond to the record command. Upload the latest firmware (PlatformIO → <b>Upload</b>), reconnect, and try again.');
+  log('err', 'Recording not supported by the firmware on the board');
+  renderRec();
+}
+
+async function stopRecording() {
+  if (!rec.on || rec.stopping) return;
+  rec.stopping = true;
+  renderRec();
+  try { await send('e', 'stop recording'); } catch (e) { log('err', e.message); }
+  clearTimeout(rec.timer);
+  rec.timer = setTimeout(() => finishRecording(), 1500);   // in case @RAWEND never arrives
+}
+
+function handleRaw(line) {
+  if (line.startsWith('@RAW ')) {
+    if (!rec.on) return;
+    const lsb = rec.lsb, parts = line.slice(5).split(';');
+    for (const p of parts) {
+      const a = p.split(',');
+      if (a.length !== 3) continue;
+      const x = +a[0] * lsb, y = +a[1] * lsb, z = +a[2] * lsb;
+      if (!(Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z))) continue;
+      rec.x.push(x); rec.y.push(y); rec.z.push(z);
+      live.buf[0].push(x); live.buf[1].push(y); live.buf[2].push(z);
+    }
+    feedLive();
+    if (rec.x.length >= REC_MAX_S * rec.fs && !rec.stopping) {
+      log('sys', `Recording reached the ${REC_MAX_S / 60}-minute limit`);
+      stopRecording();
+    }
+  } else if (line.startsWith('@RAWSTART')) {
+    const fs = line.match(/fs=([\d.]+)/), lsb = line.match(/lsb=([\d.]+)/);
+    if (fs) rec.fs = +fs[1];
+    if (lsb) rec.lsb = +lsb[1];
+    if (rec.on && !rec.started) { rec.started = true; clearTimeout(rec.timer); log('sys', `Recording at ${rec.fs.toFixed(1)} Hz`); renderRec(); }
+  } else if (line.startsWith('@RAWGAP')) {
+    if (rec.on) { rec.gaps.push(rec.x.length); log('err', 'Recording: samples lost (gap marked)'); }
+  } else if (line.startsWith('@RAWEND')) {
+    if (rec.on && rec.stopping) finishRecording();
+  } else if (line.startsWith('@RAWERR')) {
+    log('err', 'Recording: ' + line.slice(8));
+    if (rec.on) { rec.on = false; clearTimeout(rec.timer); notice('Can’t record: the board reports no accelerometer. Check the LSM6DSOX wiring and press reset.'); renderRec(); }
+  }
+}
+
+function recEvent(mode) {
+  if (!rec.on) return;
+  const last = rec.events[rec.events.length - 1];
+  if (last && last.mode === mode) return;
+  rec.events.push({ i: rec.x.length, mode });
+}
+
+async function finishRecording(why) {
+  if (!rec.on) return;
+  clearTimeout(rec.timer);
+  rec.on = false;
+  const n = rec.x.length;
+  renderRec();
+  if (!n) { log('sys', 'Recording stopped, no samples received'); return; }
+  const d = new Date();
+  const time = d.toLocaleTimeString([], { hour12: false });
+  const r = {
+    id: d.getTime() + '-' + Math.random().toString(36).slice(2, 7),
+    name: (rec.startMode ? `Mode ${rec.startMode}` : 'Recording') + ' · ' + time,
+    created: d.getTime(), fs: rec.fs, n,
+    x: Float32Array.from(rec.x), y: Float32Array.from(rec.y), z: Float32Array.from(rec.z),
+    events: rec.events.slice(), gaps: rec.gaps.slice(),
+  };
+  rec.x = []; rec.y = []; rec.z = [];
+  log('sys', `Saved recording: ${(n / r.fs).toFixed(1)} s, ${n.toLocaleString()} samples` + (why ? ` (${why})` : ''));
+  recordings.unshift(r);
+  dbPut(r);
+  renderRecList();
+  openAnalysis(r, false);
+}
+
+function renderRec() {
+  const st = $('recState'), txt = $('recStateText');
+  if (rec.on) { st.className = 'mstate rec'; txt.textContent = rec.stopping ? 'Finishing…' : rec.started ? 'Recording' : 'Starting…'; }
+  else if (port) { st.className = 'mstate'; txt.textContent = meas.present === false ? 'No accelerometer' : 'Ready'; }
+  else { st.className = 'mstate'; txt.textContent = 'Connect to record'; }
+  $('recStart').disabled = !port || rec.on || meas.present === false;
+  $('recStop').disabled = !rec.on || rec.stopping;
+  renderRecLive();
+}
+
+function renderRecLive() {
+  const n = rec.on ? rec.x.length : 0;
+  if (rec.on) {
+    $('recTime').textContent = fmtDur(n / rec.fs);
+    $('recN').textContent = n.toLocaleString();
+  }
+}
+
+// ---- Live spectrogram (scrolls left; one column every LIVE_HOP samples) ----
+function clearLive() {
+  const c = $('recLive'), { g, w, h } = prep(c);
+  g.fillStyle = lutCss(LUTS.ice, 0); g.fillRect(0, 0, w, h);
+  g.fillStyle = '#4a5b78'; g.font = '11px "JetBrains Mono", monospace'; g.textAlign = 'center';
+  g.fillText(rec.on ? 'waiting for samples…' : 'press Start to record', w / 2, h / 2 + 4);
+  $('recCapR').textContent = `0–${Math.round(rec.fs / 2)} Hz`;
+  live.blank = true;
+}
+
+function feedLive() {
+  const B = live.buf;
+  while (B[0].length >= LIVE_N) {
+    live.acc.fill(0);
+    for (const a of B) addPsd(a, 0, LIVE_N, rec.fs, live.acc, live.re, live.im);
+    drawLiveCol(live.acc);
+    for (const a of B) a.splice(0, LIVE_HOP);
+  }
+}
+
+function drawLiveCol(psd) {
+  const c = $('recLive'), r = window.devicePixelRatio || 1;
+  const g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  if (live.blank) { g.fillStyle = lutCss(LUTS.ice, 0); g.fillRect(0, 0, c.width, c.height); live.blank = false; }
+  const W = c.width, H = c.height, cw = Math.round(LIVE_COL_PX * r);
+  g.drawImage(c, -cw, 0);
+  let colTop = -Infinity;
+  const db = Array.from(psd, p => { const v = toDb(p); if (v > colTop) colTop = v; return v; });
+  live.top = Math.max(colTop, live.top - 0.15);      // slowly adapts to quieter signals
+  const floor = live.top - 60, bins = psd.length;
+  for (let y = 0; y < H; y++) {
+    const b = Math.min(bins - 1, Math.round((1 - (y + 0.5) / H) * (bins - 1)));
+    const v = Math.max(0, Math.min(1, (db[b] - floor) / 60));
+    g.fillStyle = lutCss(LUTS.ice, (v * 255) | 0);
+    g.fillRect(W - cw, y, cw, 1);
+  }
+}
+
+// ---- Saved recordings (IndexedDB, so they survive reloading the page) ----
+let dbPromise = null;
+function idb() {
+  if (!dbPromise) dbPromise = new Promise((res, rej) => {
+    const q = indexedDB.open('cryovybe', 1);
+    q.onupgradeneeded = () => q.result.createObjectStore('recordings', { keyPath: 'id' });
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+  });
+  return dbPromise;
+}
+async function dbTx(mode, fn) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('recordings', mode), out = fn(tx.objectStore('recordings'));
+    tx.oncomplete = () => res(out && out.result);
+    tx.onerror = () => rej(tx.error);
+  });
+}
+const dbPut = r => dbTx('readwrite', s => s.put(r)).catch(e => log('err', 'Could not store recording in the browser: ' + e.message));
+const dbDel = id => dbTx('readwrite', s => s.delete(id)).catch(() => {});
+async function loadRecordings() {
+  try {
+    const all = await dbTx('readonly', s => s.getAll());
+    const ids = new Set(recordings.map(r => r.id));    // keep anything recorded while loading
+    recordings = recordings.concat((all || []).filter(r => !ids.has(r.id))).sort((a, b) => b.created - a.created);
+  } catch (e) { log('sys', 'Recordings will not be kept after reload (browser storage unavailable)'); }
+  renderRecList();
+}
+
+function renderRecList() {
+  const el = $('recList');
+  el.innerHTML = '';
+  if (!recordings.length) {
+    el.innerHTML = '<div class="empty">No recordings yet. Press <b>Start</b>, run a mode (or leave the motor off for a baseline), then press <b>Stop</b>.</div>';
+    return;
+  }
+  for (const r of recordings) {
+    const item = document.createElement('div');
+    item.className = 'ritem' + (ana.r === r ? ' open' : '');
+    const when = new Date(r.created).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+    item.innerHTML = `<input aria-label="Recording name"><div class="meta">${(r.n / r.fs).toFixed(1)} s · ${r.n.toLocaleString()} samples · ${when}</div>
+      <div class="acts"><button class="chip pri" data-a="open">Spectrogram</button><button class="chip" data-a="csv">Save CSV</button><button class="chip danger" data-a="del">Delete</button></div>`;
+    const inp = item.querySelector('input');
+    inp.value = r.name;
+    inp.addEventListener('change', () => { r.name = inp.value.trim() || r.name; inp.value = r.name; dbPut(r); if (ana.r === r) renderAnaHead(); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    item.querySelector('[data-a=open]').onclick = () => openAnalysis(r, true);
+    item.querySelector('[data-a=csv]').onclick = () => exportCsv(r);
+    const del = item.querySelector('[data-a=del]');
+    del.onclick = () => {
+      if (!del.classList.contains('confirm')) {
+        del.classList.add('confirm'); del.textContent = 'Confirm delete';
+        setTimeout(() => { del.classList.remove('confirm'); del.textContent = 'Delete'; }, 3000);
+        return;
+      }
+      recordings = recordings.filter(o => o !== r);
+      dbDel(r.id);
+      if (ana.r === r) closeAnalysis();
+      renderRecList();
+    };
+    el.appendChild(item);
+  }
+}
+
+// ---- CSV export / import ----
+function exportCsv(r) {
+  const head = [
+    '# CryoVybe accelerometer recording (LSM6DSOX)',
+    `# name: ${r.name}`,
+    `# recorded: ${new Date(r.created).toISOString()}`,
+    `# sample_rate_hz: ${r.fs}`,
+    '# units: g (raw, gravity included)',
+    ...r.events.map(e => `# event: sample=${e.i} t_s=${(e.i / r.fs).toFixed(4)} ${e.mode ? 'mode=' + e.mode : 'stopped'}`),
+    ...r.gaps.map(i => `# gap: sample=${i} t_s=${(i / r.fs).toFixed(4)}`),
+    't_s,x_g,y_g,z_g', '',
+  ];
+  const parts = [head.join('\n')];
+  for (let i0 = 0; i0 < r.n; i0 += 20000) {
+    const rows = [];
+    for (let i = i0; i < Math.min(r.n, i0 + 20000); i++) {
+      rows.push(`${(i / r.fs).toFixed(5)},${r.x[i].toFixed(5)},${r.y[i].toFixed(5)},${r.z[i].toFixed(5)}`);
+    }
+    parts.push(rows.join('\n') + '\n');
+  }
+  download(fileBase(r) + '.csv', new Blob(parts, { type: 'text/csv' }));
+}
+
+async function importCsv(file) {
+  const text = await file.text();
+  let fs = 0, name = file.name.replace(/\.csv$/i, ''), created = file.lastModified || Date.now();
+  const t = [], x = [], y = [], z = [], events = [], gaps = [];
+  for (const L of text.split(/\r?\n/)) {
+    if (!L.trim()) continue;
+    if (L[0] === '#') {
+      let m;
+      if ((m = L.match(/sample_rate_hz:\s*([\d.]+)/))) fs = +m[1];
+      else if ((m = L.match(/^#\s*name:\s*(.+)$/))) name = m[1].trim();
+      else if ((m = L.match(/^#\s*recorded:\s*(\S+)/)) && !isNaN(Date.parse(m[1]))) created = Date.parse(m[1]);
+      else if ((m = L.match(/event: sample=(\d+).*?(?:mode=(\d)|stopped)/))) events.push({ i: +m[1], mode: m[2] ? +m[2] : 0 });
+      else if ((m = L.match(/gap: sample=(\d+)/))) gaps.push(+m[1]);
+      continue;
+    }
+    const a = L.split(',');
+    if (a.length < 4 || isNaN(+a[0]) || isNaN(+a[1])) continue;   // header row
+    t.push(+a[0]); x.push(+a[1]); y.push(+a[2]); z.push(+a[3]);
+  }
+  if (x.length < 16) { notice('That file doesn’t look like a recording: expected columns t_s, x_g, y_g, z_g.'); return; }
+  if (!fs) fs = (t.length - 1) / (t[t.length - 1] - t[0]);
+  if (!(fs > 0)) { notice('Could not work out the sample rate from that file.'); return; }
+  notice('');
+  const r = { id: Date.now() + '-' + Math.random().toString(36).slice(2, 7), name, created, fs, n: x.length,
+              x: Float32Array.from(x), y: Float32Array.from(y), z: Float32Array.from(z), events, gaps };
+  recordings.unshift(r);
+  recordings.sort((a, b) => b.created - a.created);
+  dbPut(r);
+  log('sys', `Imported ${file.name}`);
+  openAnalysis(r, true);
+}
+
+$('recStart').onclick = startRecording;
+$('recStop').onclick = stopRecording;
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) importCsv(f); };
+
+// ---------------------------------------------------------------------------
+// Analysis: waveform, spectrogram (STFT) and average spectrum (Welch)
+// ---------------------------------------------------------------------------
+const PL = 56, PR = 14;               // plot margins in CSS px, shared so plots line up
+const MAX_COLS = 6000;                // spectrogram columns; hop grows for long recordings
+const ana = { r: null, spec: null, off: null, view: [0, 1], means: {}, drag: null, token: 0, psd: null };
+
+function opt(id) { return $(id).value; }
+
+function openAnalysis(r, scroll) {
+  ana.r = r;
+  ana.view = [0, r.n / r.fs];
+  ana.means = {};
+  for (const a of ['x', 'y', 'z']) { let s = 0; for (let i = 0; i < r.n; i++) s += r[a][i]; ana.means[a] = s / r.n; }
+  $('ana').hidden = false;
+  renderAnaHead();
+  renderRecList();
+  computeAna();
+  if (scroll) $('ana').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closeAnalysis() { ana.r = null; ana.spec = null; $('ana').hidden = true; renderRecList(); }
+
+function renderAnaHead() {
+  const r = ana.r;
+  $('anaName').firstChild.nodeValue = r.name;
+  $('anaMeta').textContent = `${new Date(r.created).toLocaleString([], { hour12: false })} · ${(r.n / r.fs).toFixed(2)} s · ${r.n.toLocaleString()} samples · ${r.fs.toFixed(1)} Hz`
+    + (r.gaps.length ? ` · ${r.gaps.length} gap${r.gaps.length > 1 ? 's' : ''}` : '');
+}
+
+function computeAna() {
+  const r = ana.r; if (!r) return;
+  const token = ++ana.token;
+  $('anaInfo').textContent = 'computing…';
+  setTimeout(() => {                   // let the page paint "computing…" first
+    if (token !== ana.token || ana.r !== r) return;
+    const nfft = +opt('anaWin'), hopWanted = Math.max(1, Math.round(nfft * (1 - +opt('anaOv'))));
+    const hop = Math.max(hopWanted, Math.ceil((r.n - nfft) / MAX_COLS));
+    const cols = r.n <= nfft ? 1 : Math.floor((r.n - nfft) / hop) + 1, bins = nfft / 2 + 1;
+    const axis = opt('anaAxis'), srcs = axis === 'all' ? [r.x, r.y, r.z] : [r[axis]];
+    const psd = new Float32Array(cols * bins), db = new Float32Array(cols * bins);
+    const re = new Float64Array(nfft), im = new Float64Array(nfft), acc = new Float64Array(bins);
+    let top = -Infinity;
+    for (let c = 0; c < cols; c++) {
+      acc.fill(0);
+      for (const s of srcs) addPsd(s, c * hop, nfft, r.fs, acc, re, im);
+      for (let b = 0; b < bins; b++) {
+        const o = c * bins + b; psd[o] = acc[b]; db[o] = toDb(acc[b]);
+        if (b > 0 && db[o] > top) top = db[o];
+      }
+    }
+    ana.spec = { nfft, hop, hopWanted, cols, bins, fs: r.fs, psd, db, top };
+    buildSpecImage();
+    drawAna();
+  }, 20);
+}
+
+function buildSpecImage() {
+  const s = ana.spec, lut = LUTS[opt('anaCmap')], range = +opt('anaRange'), floor = s.top - range;
+  const off = ana.off || (ana.off = document.createElement('canvas'));
+  off.width = s.cols; off.height = s.bins;
+  const g = off.getContext('2d'), img = g.createImageData(s.cols, s.bins), d = img.data;
+  for (let c = 0; c < s.cols; c++) {
+    for (let b = 0; b < s.bins; b++) {
+      let v = (s.db[c * s.bins + b] - floor) / range; v = v < 0 ? 0 : v > 1 ? 1 : v;
+      const li = ((v * 255) | 0) * 3, p = ((s.bins - 1 - b) * s.cols + c) * 4;
+      d[p] = lut[li]; d[p + 1] = lut[li + 1]; d[p + 2] = lut[li + 2]; d[p + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+}
+
+// Column c of the spectrogram covers samples [c*hop, c*hop+nfft); draw it centred.
+const colToT = c => (c * ana.spec.hop + ana.spec.nfft / 2 - ana.spec.hop / 2) / ana.spec.fs;
+const tToCol = t => (t * ana.spec.fs - ana.spec.nfft / 2 + ana.spec.hop / 2) / ana.spec.hop;
+const fmaxOf = () => Math.min(ana.r.fs / 2, +opt('anaFmax') || Infinity);
+
+function viewX(w) { const [v0, v1] = ana.view; return t => PL + (t - v0) / (v1 - v0) * (w - PL - PR); }
+
+function drawAna() {
+  if (!ana.r || !ana.spec) return;
+  drawAnaWave(); drawAnaSpec(); drawAnaPsd(); renderAnaStats();
+  const s = ana.spec;
+  $('anaInfo').textContent = `Δf ${(s.fs / s.nfft).toFixed(2)} Hz · Δt ${(s.hop / s.fs * 1000).toFixed(0)} ms`
+    + (s.hop > s.hopWanted ? ' (overlap reduced for this long recording)' : '');
+}
+
+function drawMarkers(g, X, top, bot, labels) {
+  const r = ana.r, [v0, v1] = ana.view;
+  g.save();
+  g.font = '10px "JetBrains Mono", monospace'; g.textAlign = 'left';
+  for (const e of r.events) {
+    const t = e.i / r.fs; if (t < v0 || t > v1) continue;
+    const x = Math.round(X(t)) + 0.5;
+    g.strokeStyle = e.mode ? 'rgba(255,189,114,.75)' : 'rgba(255,189,114,.45)';
+    g.setLineDash([3, 3]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, top); g.lineTo(x, bot); g.stroke();
+    if (labels) {
+      const txt = e.mode ? `mode ${e.mode}` : 'stop', tw = g.measureText(txt).width;
+      g.fillStyle = 'rgba(5,9,18,.85)'; g.fillRect(x + 2, top + 1, tw + 6, 13);
+      g.fillStyle = '#ffbd72'; g.fillText(txt, x + 5, top + 11);
+    }
+  }
+  g.setLineDash([]);
+  for (const i of r.gaps) {
+    const t = i / r.fs; if (t < v0 || t > v1) continue;
+    const x = Math.round(X(t)) + 0.5;
+    g.strokeStyle = 'rgba(255,111,142,.9)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(x, top); g.lineTo(x, top + 8); g.moveTo(x, bot - 8); g.lineTo(x, bot); g.stroke();
+  }
+  g.restore();
+}
+
+function drawAnaWave() {
+  const r = ana.r, { g, w, h } = prep($('anaWave')), X = viewX(w);
+  const top = 6, bot = h - 6, mid = (top + bot) / 2, pw = w - PL - PR;
+  const [v0, v1] = ana.view;
+  const i0 = Math.max(0, Math.floor(v0 * r.fs)), i1 = Math.min(r.n, Math.ceil(v1 * r.fs) + 1);
+  const axis = opt('anaAxis'), axes = axis === 'all' ? ['x', 'y', 'z'] : [axis];
+  let peak = 0.002;
+  for (const a of axes) { const s = r[a], m = ana.means[a]; for (let i = i0; i < i1; i++) { const v = Math.abs(s[i] - m); if (v > peak) peak = v; } }
+  peak *= 1.05;
+  const Y = v => mid - v / peak * (bot - top) / 2;
+
+  g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(PL, top, pw, bot - top);
+  g.strokeStyle = 'rgba(150,200,255,0.1)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(PL, Math.round(mid) + .5); g.lineTo(w - PR, Math.round(mid) + .5); g.stroke();
+  g.fillStyle = '#7d91b0'; g.font = '10.5px "JetBrains Mono", monospace'; g.textAlign = 'right';
+  g.fillText(`+${peak.toFixed(peak < 0.1 ? 3 : 2)}`, PL - 6, top + 9);
+  g.fillText('0', PL - 6, mid + 4);
+  g.fillText(`−${peak.toFixed(peak < 0.1 ? 3 : 2)}`, PL - 6, bot - 1);
+
+  const spp = (i1 - i0) / pw;
+  g.save(); g.beginPath(); g.rect(PL, top, pw, bot - top); g.clip();
+  for (const a of axes) {
+    const s = r[a], m = ana.means[a];
+    g.strokeStyle = AXIS_COLORS[a]; g.globalAlpha = axes.length > 1 ? 0.75 : 1; g.lineWidth = 1.2; g.lineJoin = 'round';
+    g.beginPath();
+    if (spp <= 2) {
+      for (let i = i0; i < i1; i++) { const x = X(i / r.fs), y = Y(s[i] - m); i === i0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+    } else {
+      for (let px = 0; px < pw; px++) {
+        const a0 = i0 + Math.floor(px * spp), a1 = Math.min(i1, i0 + Math.floor((px + 1) * spp));
+        let lo = Infinity, hi = -Infinity;
+        for (let i = a0; i < a1; i++) { const v = s[i] - m; if (v < lo) lo = v; if (v > hi) hi = v; }
+        if (lo > hi) continue;
+        const x = PL + px + 0.5;
+        if (px === 0) g.moveTo(x, Y(hi)); else g.lineTo(x, Y(hi));
+        g.lineTo(x, Y(lo));
+      }
+    }
+    g.stroke();
+  }
+  g.restore();
+  drawMarkers(g, X, top, bot, true);
+
+  $('anaWaveLeg').innerHTML = axes.map(a => `<i class="sw ${a}"></i>${a.toUpperCase()}`).join('') + ' &nbsp;acceleration, gravity removed (g)';
+  $('anaWaveScale').textContent = `${(v1 - v0).toFixed(v1 - v0 < 1 ? 3 : 2)} s shown`;
+}
+
+function drawAnaSpec() {
+  const s = ana.spec, r = ana.r, { g, w, h } = prep($('anaSpec')), X = viewX(w);
+  const top = 4, bot = h - 22, ph = bot - top, pw = w - PL - PR;
+  const [v0, v1] = ana.view, fmax = fmaxOf(), df = s.fs / s.nfft, lut = LUTS[opt('anaCmap')];
+
+  g.fillStyle = lutCss(lut, 0); g.fillRect(PL, top, pw, ph);
+  const c0 = Math.max(0, tToCol(v0)), c1 = Math.min(s.cols, tToCol(v1) + 1);
+  if (c1 > c0) {
+    const sy = s.bins - 0.5 - fmax / df, sh = fmax / df;
+    g.save(); g.beginPath(); g.rect(PL, top, pw, ph); g.clip();
+    g.imageSmoothingEnabled = (c1 - c0) < pw;    // smooth when zoomed in, crisp when dense
+    g.imageSmoothingQuality = 'high';
+    const x0 = X(colToT(c0)), x1 = X(colToT(c1));
+    g.drawImage(ana.off, c0, Math.max(0, sy), c1 - c0, Math.min(sh, s.bins - Math.max(0, sy)), x0, top, x1 - x0, ph);
+    g.restore();
+  }
+  drawMarkers(g, X, top, bot, false);
+
+  g.fillStyle = '#7d91b0'; g.font = '10.5px "JetBrains Mono", monospace';
+  g.strokeStyle = 'rgba(150,200,255,0.25)'; g.lineWidth = 1;
+  g.textAlign = 'right';
+  const ft = niceTicks(0, fmax, 6);
+  for (const f of ft.out) {
+    const y = bot - f / fmax * ph;
+    g.beginPath(); g.moveTo(PL - 4, Math.round(y) + .5); g.lineTo(PL, Math.round(y) + .5); g.stroke();
+    g.fillText(f.toFixed(ft.dec), PL - 6, Math.min(bot, Math.max(top + 8, y + 3.5)));
+  }
+  g.save(); g.translate(12, top + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('frequency (Hz)', 0, 0); g.restore();
+  g.textAlign = 'center';
+  const tt = niceTicks(v0, v1, Math.max(3, Math.floor(pw / 90)));
+  for (const t of tt.out) {
+    const x = X(t);
+    g.beginPath(); g.moveTo(Math.round(x) + .5, bot); g.lineTo(Math.round(x) + .5, bot + 4); g.stroke();
+    g.fillText(t.toFixed(tt.dec) + ' s', Math.min(w - PR - 14, Math.max(PL + 14, x)), bot + 15);
+  }
+}
+
+function drawAnaPsd() {
+  const s = ana.spec, { g, w, h } = prep($('anaPsd'));
+  const top = 8, bot = h - 22, ph = bot - top, pw = w - PL - PR;
+  const [v0, v1] = ana.view, fmax = fmaxOf(), df = s.fs / s.nfft;
+  // average the columns whose centre lies in view (at least one)
+  const avg = new Float64Array(s.bins);
+  let used = 0;
+  for (let c = 0; c < s.cols; c++) {
+    const tc = (c * s.hop + s.nfft / 2) / s.fs;
+    if (tc < v0 || tc > v1) continue;
+    for (let b = 0; b < s.bins; b++) avg[b] += s.psd[c * s.bins + b];
+    used++;
+  }
+  if (!used) {
+    const c = Math.max(0, Math.min(s.cols - 1, Math.round(tToCol((v0 + v1) / 2))));
+    for (let b = 0; b < s.bins; b++) avg[b] = s.psd[c * s.bins + b];
+    used = 1;
+  } else for (let b = 0; b < s.bins; b++) avg[b] /= used;
+  const db = Array.from(avg, toDb);
+  const kmax = Math.min(s.bins - 1, Math.floor(fmax / df));
+  const kmin = Math.max(1, Math.ceil(5 / df));             // ignore below 5 Hz for the peak
+  let pk = kmin;
+  for (let b = kmin; b <= kmax; b++) if (db[b] > db[pk]) pk = b;
+  let peakF = pk * df;
+  if (pk > 0 && pk < s.bins - 1) {
+    const a = db[pk - 1], b = db[pk], c = db[pk + 1], den = a - 2 * b + c;
+    if (den) peakF = (pk + 0.5 * (a - c) / den) * df;
+  }
+  const yTop = Math.ceil((db[pk] + 3) / 10) * 10, range = +opt('anaRange'), yBot = yTop - range;
+  ana.psd = { avg, db, peakF, peakDb: db[pk], df, used, yTop, yBot };
+  const X = f => PL + f / fmax * pw, Y = v => top + (yTop - Math.max(yBot, Math.min(yTop, v))) / range * ph;
+
+  g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(PL, top, pw, ph);
+  g.font = '10.5px "JetBrains Mono", monospace'; g.fillStyle = '#7d91b0'; g.lineWidth = 1;
+  const yt = niceTicks(yBot, yTop, 4);
+  g.textAlign = 'right';
+  for (const v of yt.out) {
+    const y = Math.round(Y(v)) + .5;
+    g.strokeStyle = 'rgba(150,200,255,0.07)'; g.beginPath(); g.moveTo(PL, y); g.lineTo(w - PR, y); g.stroke();
+    g.fillText(v.toFixed(0), PL - 6, y + 3.5);
+  }
+  g.save(); g.translate(12, top + ph / 2); g.rotate(-Math.PI / 2); g.textAlign = 'center'; g.fillText('dB re 1 g²/Hz', 0, 0); g.restore();
+  g.textAlign = 'center';
+  const ft = niceTicks(0, fmax, Math.max(3, Math.floor(pw / 80)));
+  for (const f of ft.out) {
+    const x = Math.round(X(f)) + .5;
+    g.strokeStyle = 'rgba(150,200,255,0.07)'; g.beginPath(); g.moveTo(x, top); g.lineTo(x, bot); g.stroke();
+    g.fillText(f.toFixed(ft.dec) + (f === ft.out[ft.out.length - 1] ? ' Hz' : ''), Math.min(w - PR - 16, Math.max(PL + 8, x)), bot + 15);
+  }
+  g.save(); g.beginPath(); g.rect(PL, top, pw, ph); g.clip();
+  const fill = g.createLinearGradient(0, top, 0, bot);
+  fill.addColorStop(0, 'rgba(142,234,255,.28)'); fill.addColorStop(1, 'rgba(77,157,255,0)');
+  g.beginPath(); g.moveTo(X(0), bot);
+  for (let b = 0; b <= kmax + 1 && b < s.bins; b++) g.lineTo(X(b * df), Y(db[b]));
+  g.lineTo(X(Math.min(kmax + 1, s.bins - 1) * df), bot); g.closePath();
+  g.fillStyle = fill; g.fill();
+  g.beginPath();
+  for (let b = 0; b <= kmax + 1 && b < s.bins; b++) b ? g.lineTo(X(b * df), Y(db[b])) : g.moveTo(X(0), Y(db[0]));
+  g.strokeStyle = '#8eeaff'; g.lineWidth = 1.6; g.lineJoin = 'round'; g.stroke();
+  // peak marker
+  const px = X(peakF), py = Y(db[pk]);
+  g.fillStyle = '#ffbd72'; g.beginPath(); g.arc(px, py, 3.5, 0, Math.PI * 2); g.fill();
+  g.font = '11px "JetBrains Mono", monospace'; g.textAlign = px > w - 120 ? 'right' : 'left';
+  g.fillText(`${peakF.toFixed(1)} Hz`, px + (px > w - 120 ? -8 : 8), Math.max(top + 11, py - 6));
+  g.restore();
+  $('anaPeak').textContent = `peak ${peakF.toFixed(1)} Hz · ${used} window${used > 1 ? 's' : ''} averaged`;
+}
+
+function renderAnaStats() {
+  const r = ana.r, [v0, v1] = ana.view;
+  const i0 = Math.max(0, Math.floor(v0 * r.fs)), i1 = Math.min(r.n, Math.ceil(v1 * r.fs));
+  const rms = {};
+  for (const a of ['x', 'y', 'z']) {
+    const s = r[a]; let m = 0, q = 0, k = Math.max(1, i1 - i0);
+    for (let i = i0; i < i1; i++) m += s[i];
+    m /= k;
+    for (let i = i0; i < i1; i++) q += (s[i] - m) ** 2;
+    rms[a] = Math.sqrt(q / k);
+  }
+  const tot = Math.sqrt(rms.x ** 2 + rms.y ** 2 + rms.z ** 2);
+  const cells = [
+    ['Peak frequency', `${ana.psd.peakF.toFixed(1)} Hz`, true],
+    ['Visible', `${(v1 - v0).toFixed(2)} s`],
+    ['RMS total', `${tot.toFixed(3)} g`],
+    ['RMS X', `${rms.x.toFixed(3)} g`],
+    ['RMS Y', `${rms.y.toFixed(3)} g`],
+    ['RMS Z', `${rms.z.toFixed(3)} g`],
+  ];
+  $('anaStats').innerHTML = cells.map(([k, v, hi]) => `<div><span class="label">${k}</span><b${hi ? ' class="hi"' : ''}>${v}</b></div>`).join('');
+}
+
+// ---- Hover readout and drag-to-zoom on the waveform / spectrogram ----
+const plotsEl = $('plots');
+function plotT(clientX) {
+  const rc = $('anaSpec').getBoundingClientRect(), pw = rc.width - PL - PR;
+  const x = Math.max(PL, Math.min(rc.width - PR, clientX - rc.left));
+  return { x, t: ana.view[0] + (x - PL) / pw * (ana.view[1] - ana.view[0]) };
+}
+plotsEl.addEventListener('pointerdown', e => {
+  if (!ana.spec || e.button !== 0) return;
+  const { x } = plotT(e.clientX);
+  ana.drag = { x0: x };
+  plotsEl.setPointerCapture(e.pointerId);
+});
+plotsEl.addEventListener('pointermove', e => {
+  if (!ana.spec) return;
+  const { x, t } = plotT(e.clientX);
+  const xh = $('xhair'); xh.hidden = false; xh.style.left = x + 'px';
+  if (ana.drag) {
+    const sb = $('selbox'); sb.hidden = false;
+    sb.style.left = Math.min(x, ana.drag.x0) + 'px'; sb.style.width = Math.abs(x - ana.drag.x0) + 'px';
+  }
+  const s = ana.spec, rc = $('anaSpec').getBoundingClientRect(), y = e.clientY - rc.top;
+  let txt = `t = ${t.toFixed(3)} s`;
+  if (y >= 4 && y <= rc.height - 22) {
+    const f = (rc.height - 22 - y) / (rc.height - 26) * fmaxOf();
+    const b = Math.max(0, Math.min(s.bins - 1, Math.round(f / (s.fs / s.nfft))));
+    const c = Math.max(0, Math.min(s.cols - 1, Math.round(tToCol(t) - 0.5)));
+    txt += ` · f = ${f.toFixed(1)} Hz · ${s.db[c * s.bins + b].toFixed(1)} dB`;
+  }
+  $('anaRead').textContent = txt;
+});
+plotsEl.addEventListener('pointerup', e => {
+  const d = ana.drag;
+  if (!d) return;
+  ana.drag = null; $('selbox').hidden = true;
+  const left = $('anaSpec').getBoundingClientRect().left;
+  const a = plotT(d.x0 + left), b = plotT(e.clientX);
+  if (Math.abs(b.x - a.x) < 5) return;            // a click, not a drag
+  const t0 = Math.min(a.t, b.t), t1 = Math.max(a.t, b.t);
+  if (t1 - t0 < 16 / ana.r.fs) return;
+  ana.view = [t0, t1];
+  drawAna();
+});
+plotsEl.addEventListener('pointerleave', () => { if (!ana.drag) { $('xhair').hidden = true; $('anaRead').textContent = 'Drag across the plot to zoom in · double-click to zoom out'; } });
+plotsEl.addEventListener('dblclick', () => resetZoom());
+function resetZoom() { if (!ana.r) return; ana.view = [0, ana.r.n / ana.r.fs]; drawAna(); }
+
+// ---- Controls and exports ----
+for (const id of ['anaAxis', 'anaWin', 'anaOv']) $(id).addEventListener('change', computeAna);
+$('anaFmax').addEventListener('change', drawAna);
+$('anaCmap').addEventListener('change', () => { if (ana.spec) { buildSpecImage(); drawAna(); } });
+$('anaRange').addEventListener('input', () => {
+  $('anaRangeVal').textContent = opt('anaRange') + ' dB';
+  $('anaRange').style.setProperty('--fill', ((+opt('anaRange') - 30) / 90 * 100) + '%');
+  if (ana.spec) { buildSpecImage(); drawAna(); }
+});
+$('anaRange').style.setProperty('--fill', ((70 - 30) / 90 * 100) + '%');
+$('anaReset').onclick = resetZoom;
+$('anaClose').onclick = closeAnalysis;
+$('anaCsv').onclick = () => ana.r && exportCsv(ana.r);
+
+$('anaPng').onclick = () => {
+  if (!ana.spec) return;
+  const parts = ['anaWave', 'anaSpec', 'anaPsd'].map($), r = window.devicePixelRatio || 1;
+  const pad = Math.round(16 * r), head = Math.round(40 * r), gap = Math.round(14 * r);
+  const W = Math.max(...parts.map(c => c.width)) + 2 * pad;
+  const H = head + parts.reduce((s, c) => s + c.height + gap, 0) + pad;
+  const out = document.createElement('canvas'); out.width = W; out.height = H;
+  const g = out.getContext('2d');
+  g.fillStyle = '#050912'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#e8f2ff'; g.font = `600 ${15 * r}px Sora, system-ui, sans-serif`; g.fillText(ana.r.name, pad, pad + 14 * r);
+  g.fillStyle = '#7d91b0'; g.font = `${11 * r}px "JetBrains Mono", monospace`;
+  g.fillText(`${$('anaMeta').textContent} · signal ${opt('anaAxis').toUpperCase()} · window ${opt('anaWin')} · ${$('anaPeak').textContent}`, pad, pad + 30 * r);
+  let y = head + pad / 2;
+  for (const c of parts) { g.drawImage(c, pad, y); y += c.height + gap; }
+  out.toBlob(b => download(fileBase(ana.r) + '_spectrogram.png', b));
+};
+
+$('anaPsdCsv').onclick = () => {
+  if (!ana.psd) return;
+  const p = ana.psd, rows = [`# ${ana.r.name}: average spectrum, ${ana.view[0].toFixed(3)}–${ana.view[1].toFixed(3)} s, signal ${opt('anaAxis')}, window ${opt('anaWin')}`, 'freq_hz,psd_g2_per_hz,psd_db'];
+  for (let b = 0; b < p.avg.length; b++) rows.push(`${(b * p.df).toFixed(3)},${p.avg[b].toExponential(5)},${p.db[b].toFixed(2)}`);
+  download(fileBase(ana.r) + '_spectrum.csv', new Blob([rows.join('\n') + '\n'], { type: 'text/csv' }));
+};
+
+$('anaSpecCsv').onclick = () => {
+  if (!ana.spec) return;
+  const s = ana.spec, df = s.fs / s.nfft;
+  const parts = [`# ${ana.r.name}: spectrogram in dB re 1 g²/Hz, signal ${opt('anaAxis')}, window ${s.nfft}, hop ${s.hop}\n`,
+                 't_s\\f_hz,' + Array.from({ length: s.bins }, (_, b) => (b * df).toFixed(3)).join(',') + '\n'];
+  for (let c = 0; c < s.cols; c++) {
+    const row = [((c * s.hop + s.nfft / 2) / s.fs).toFixed(4)];
+    for (let b = 0; b < s.bins; b++) row.push(s.db[c * s.bins + b].toFixed(2));
+    parts.push(row.join(',') + '\n');
+  }
+  download(fileBase(ana.r) + '_spectrogram.csv', new Blob(parts, { type: 'text/csv' }));
+};
+
+window.addEventListener('resize', () => { if (ana.spec) drawAna(); if (live.blank) clearLive(); });
+clearLive();
+loadRecordings();
 
 // ---------------------------------------------------------------------------
 // Scope animation
@@ -834,6 +1752,7 @@ function frame() {
     $('stTime').textContent = `${mm}:${ss}`;
   }
   if (tNow - lastMeasUi > 250) { lastMeasUi = tNow; renderMeas(); }
+  if (rec.on) renderRecLive();
   requestAnimationFrame(frame);
 }
 let lastMeasUi = 0;

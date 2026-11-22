@@ -4,6 +4,8 @@
 //   3                    half-second buzz, then two clicks, repeating
 //   v + 0-100 + Enter    set strength in percent, e.g. v60 (works any time)
 //   + / -                strength up / down by 10% (works any time)
+//   r / e                start / end recording: streams every raw accelerometer
+//                        sample as @RAW lines (works any time, motor on or off)
 // Any other key ends the running mode and returns to this menu.
 // While a mode runs, the LSM6DSOX (if connected) streams @ACC / @WAV readings.
 
@@ -107,6 +109,8 @@ char processInput(bool running) {
     if (c == 'v' || c == 'V') { readingStrength = true; strengthDigits = ""; continue; }
     if (c == '+' || c == '=') { setStrength(strengthPct + STRENGTH_STEP); continue; }
     if (c == '-' || c == '_') { setStrength((int)strengthPct - STRENGTH_STEP); continue; }
+    if (c == 'r' || c == 'R') { accelStreamStart(); continue; }
+    if (c == 'e' || c == 'E') { accelStreamStop(); continue; }
 
     if (running) return 'x';
     if (c >= '1' && c <= '3') return c;
@@ -181,6 +185,7 @@ void printMenu() {
   Serial.println("  1  Continuous buzz");
   Serial.println("  2  Strong clicks");
   Serial.println("  3  Buzz, then two clicks (repeating)");
+  Serial.println("r / e  start / end recording the accelerometer");
 }
 
 void runMode(char c) {
@@ -215,6 +220,7 @@ void setup() {
 }
 
 void loop() {
+  accelService();                       // keeps recording while idle
   char c = processInput(false);
   if (c >= '1' && c <= '3') {
     runMode(c);

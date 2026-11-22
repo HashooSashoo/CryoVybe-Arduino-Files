@@ -17,6 +17,7 @@ constexpr float    MIN_FREQ_HZ = 20.0f;    // ignore anything slower than this
 constexpr float    MIN_RMS_G   = 0.005f;   // below this there is no real vibration
 constexpr float    G_PER_LSB   = 0.000488f;// +/-16 g range
 constexpr uint8_t  MAX_WORDS_PER_CALL = 40;
+constexpr uint8_t  RAW_BATCH   = 32;       // raw samples per @RAW line
 
 // ---- LSM6DSOX registers ----
 constexpr uint8_t REG_FIFO_CTRL3 = 0x09;   // batch data rates
@@ -32,12 +33,17 @@ constexpr uint8_t TAG_ACCEL       = 0x02;
 
 uint8_t addr = 0x6A;
 bool present = false;
-bool enabled = false;
+bool enabled = false;         // FIFO running (measuring || streaming)
+bool measuring = false;       // a mode is running
+bool streaming = false;       // the control panel is recording
 float fs = 1666.67f;          // actual sample rate, corrected with REG_FREQ_FINE
 
 float ax[N], ay[N], az[N];    // acceleration, g
 float re[N], im[N];           // FFT working space
 uint16_t count = 0;
+
+int16_t rawBuf[RAW_BATCH][3]; // raw samples waiting to be sent
+uint8_t rawCount = 0;
 
 // ---- I2C helpers ----
 void writeReg(uint8_t reg, uint8_t val) {
@@ -67,6 +73,28 @@ void restartFifo() {
   writeReg(REG_FIFO_CTRL3, BDR_XL_1667HZ);
   writeReg(REG_FIFO_CTRL4, FIFO_CONTINUOUS);
   count = 0;
+}
+
+// Turn the FIFO on or off to match what is wanted.
+void updateEnabled() {
+  bool want = measuring || streaming;
+  if (want && !enabled) restartFifo();
+  if (!want && enabled) { writeReg(REG_FIFO_CTRL4, FIFO_BYPASS); count = 0; }
+  enabled = want;
+}
+
+// Send the waiting raw samples as one @RAW line.
+void flushRaw() {
+  if (!rawCount) return;
+  static char line[8 + RAW_BATCH * 20];
+  int p = snprintf(line, sizeof line, "@RAW ");
+  for (uint8_t i = 0; i < rawCount; i++) {
+    p += snprintf(line + p, sizeof line - p, i ? ";%d,%d,%d" : "%d,%d,%d",
+                  rawBuf[i][0], rawBuf[i][1], rawBuf[i][2]);
+  }
+  Serial.write(line, p);
+  Serial.write('\n');
+  rawCount = 0;
 }
 
 // ---- Analysis ----
@@ -189,15 +217,32 @@ bool initAccel() {
 
 void accelStart() {
   if (!present) return;
-  restartFifo();
-  enabled = true;
+  measuring = true;
+  updateEnabled();
 }
 
 void accelStop() {
   if (!present) return;
-  enabled = false;
-  writeReg(REG_FIFO_CTRL4, FIFO_BYPASS);
-  count = 0;
+  measuring = false;
+  updateEnabled();
+}
+
+void accelStreamStart() {
+  if (!present) { Serial.println("@RAWERR no accelerometer"); return; }
+  if (!streaming) rawCount = 0;
+  streaming = true;
+  Serial.print("@RAWSTART fs=");
+  Serial.print(fs, 2);
+  Serial.print(" lsb=");
+  Serial.println(G_PER_LSB, 6);
+  updateEnabled();
+}
+
+void accelStreamStop() {
+  if (streaming) flushRaw();
+  streaming = false;
+  Serial.println("@RAWEND");
+  if (present) updateEnabled();
 }
 
 void accelService() {
@@ -207,16 +252,27 @@ void accelService() {
   readBytes(REG_FIFO_STAT1, st, 2);
   uint16_t avail = ((uint16_t)(st[1] & 0x03) << 8) | st[0];
   bool overrun = st[1] & 0x48;          // FIFO_OVR_IA or FIFO_OVR_LATCHED
-  if (overrun) { restartFifo(); return; }   // samples were lost; start a clean reading
+  if (overrun) {                        // samples were lost; start a clean reading
+    restartFifo();
+    if (streaming) { flushRaw(); Serial.println("@RAWGAP"); }
+    return;
+  }
 
   if (avail > MAX_WORDS_PER_CALL) avail = MAX_WORDS_PER_CALL;
   while (avail--) {
     uint8_t b[7];
     readBytes(REG_FIFO_OUT, b, 7);
     if ((b[0] >> 3) != TAG_ACCEL) continue;
-    ax[count] = (int16_t)(b[2] << 8 | b[1]) * G_PER_LSB;
-    ay[count] = (int16_t)(b[4] << 8 | b[3]) * G_PER_LSB;
-    az[count] = (int16_t)(b[6] << 8 | b[5]) * G_PER_LSB;
+    int16_t x = (int16_t)(b[2] << 8 | b[1]);
+    int16_t y = (int16_t)(b[4] << 8 | b[3]);
+    int16_t z = (int16_t)(b[6] << 8 | b[5]);
+    if (streaming) {
+      rawBuf[rawCount][0] = x; rawBuf[rawCount][1] = y; rawBuf[rawCount][2] = z;
+      if (++rawCount == RAW_BATCH) flushRaw();
+    }
+    ax[count] = x * G_PER_LSB;
+    ay[count] = y * G_PER_LSB;
+    az[count] = z * G_PER_LSB;
     if (++count == N) {
       analyzeAndReport();
       count = 0;
