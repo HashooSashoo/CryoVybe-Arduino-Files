@@ -386,7 +386,7 @@
         <span class="switch"><input type="checkbox" id="randomToggle"><span></span></span>
         <span class="txt">
           <b>Random mode</b>
-          <small id="randomSub">Every 3 s, switch to one of the other two modes</small>
+          <small id="randomSub">Every 5 s, switch to one of the other two modes</small>
           <span class="rbar"><i id="randomBar"></i></span>
         </span>
         <span class="cd" id="randomCd"></span>
@@ -897,14 +897,14 @@ async function startMode(n) {
       previewing = true;
     }
     activeMode = n; runStart = now(); beginSegment(n);
-    if (random.on) scheduleRandom();       // every switch (auto or manual) restarts the 3 s
+    if (random.on) scheduleRandom();       // every switch (auto or manual) restarts the 5 s
     render();
   } catch (e) { log('err', e.message); }
   busy = false;
 }
 
 // ---- Random mode: every RANDOM_MS, jump to one of the two other modes ----
-const RANDOM_MS = 3000;
+const RANDOM_MS = 5000;
 const random = { on: false, timer: null, next: 0 };
 
 function scheduleRandom() {
