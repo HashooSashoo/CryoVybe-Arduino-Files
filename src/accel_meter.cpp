@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <Adafruit_LSM6DSOX.h>
 #include "accel_meter.h"
+#include "motor_effects.h"   // motorService(): keeps a low-frequency sine running
 
 namespace {
 
@@ -41,6 +42,8 @@ float fs = 1666.67f;          // actual sample rate, corrected with REG_FREQ_FIN
 float ax[N], ay[N], az[N];    // acceleration, g
 float re[N], im[N];           // FFT working space
 uint16_t count = 0;
+
+AccelReading latest = {0, 0, 0, 0, 0};
 
 int16_t rawBuf[RAW_BATCH][3]; // raw samples waiting to be sent
 uint8_t rawCount = 0;
@@ -168,6 +171,9 @@ void analyzeAndReport() {
   float w = 2 * PI * freq;
   float dispUm = (freq > 0) ? peakG * 9.80665f / (w * w) * 1e6f : 0;
 
+  latest.freq = freq; latest.peakG = peakG; latest.maxG = maxAbs;
+  latest.dispUm = dispUm; latest.seq++;
+
   Serial.print("@ACC f=");    Serial.print(freq, 1);
   Serial.print(" pk=");       Serial.print(peakG, 3);
   Serial.print(" rms=");      Serial.print(rms, 3);
@@ -260,6 +266,7 @@ void accelService() {
 
   if (avail > MAX_WORDS_PER_CALL) avail = MAX_WORDS_PER_CALL;
   while (avail--) {
+    motorService();
     uint8_t b[7];
     readBytes(REG_FIFO_OUT, b, 7);
     if ((b[0] >> 3) != TAG_ACCEL) continue;
@@ -282,8 +289,16 @@ void accelService() {
 
 void accelIdle(uint16_t ms) {
   unsigned long start = millis();
+  uint32_t lastService = micros() - 1000;
   do {
-    accelService();
-    delay(1);
+    // Poll the sensor about once a millisecond, the motor as often as possible
+    if (micros() - lastService >= 1000) { lastService = micros(); accelService(); }
+    motorService();
   } while (millis() - start < ms);
+}
+
+bool accelLatest(AccelReading &r) {
+  if (!present || latest.seq == 0) return false;
+  r = latest;
+  return true;
 }

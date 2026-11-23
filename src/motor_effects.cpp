@@ -10,6 +10,28 @@ namespace {
 uint8_t lastEffect = 0;
 bool buzzing = false;   // true while in real-time mode
 
+// How the chip is set up to drive the LRA right now
+enum class Drive : uint8_t { ClosedLoop, OpenLoopLRA, Synth };
+Drive drive = Drive::ClosedLoop;
+
+float freqHz = 0;       // requested buzz frequency, 0 = resonance
+uint8_t buzzStrength = 0; // last startBuzz() strength, 0-127
+
+// Software sine (Synth drive)
+constexpr uint32_t SYNTH_STEP_US = 400;   // shortest time between updates (~2.5 kHz)
+uint8_t  synthAmp = 0;                    // sine peak, 0-127
+uint32_t synthStartUs = 0;
+uint32_t synthLastUs = 0;
+int8_t   synthLast = 0;
+
+void setDrive(Drive d) {
+  if (d == drive) return;
+  if (d == Drive::ClosedLoop) driveClosedLoopLRA();
+  if (d == Drive::Synth)      driveOpenLoopDirect();
+  // OpenLoopLRA is applied in startBuzz, since it needs the frequency
+  drive = d;
+}
+
 // Names from TI's DRV2605L datasheet, "Waveform Library Effects List".
 const char *const EFFECT_NAMES[NUM_EFFECTS + 1] = {
   "",
@@ -146,6 +168,7 @@ void prepareForEffects() {
     buzzing = false;
   }
   drv.setMode(DRV2605_MODE_INTTRIG);
+  setDrive(Drive::ClosedLoop);   // library effects are tuned for resonance
 }
 
 }  // namespace
@@ -177,12 +200,65 @@ bool playSequence(const uint8_t *steps, uint8_t count) {
   return true;
 }
 
+float setDriveFrequency(float hz) {
+  if (hz <= 0) freqHz = 0;
+  else freqHz = constrain(hz, MIN_DRIVE_HZ, MAX_DRIVE_HZ);
+  if (buzzing) startBuzz(buzzStrength);
+  return driveFrequency();
+}
+
+float driveFrequency() {
+  // Report what open-loop LRA mode really produces (its period is quantized)
+  if (freqHz >= OPEN_LOOP_LRA_MIN_HZ) {
+    int period = (int)(1e6f / (freqHz * 98.46f) + 0.5f);
+    return 1e6f / (period * 98.46f);
+  }
+  return freqHz;
+}
+
 void startBuzz(uint8_t strength) {
   if (strength > 127) strength = 127;
+  buzzStrength = strength;
   drv.stop();
+  drv.setRealtimeValue(0);
+
+  if (freqHz == 0) {
+    setDrive(Drive::ClosedLoop);                // chip tracks resonance
+  } else if (freqHz >= OPEN_LOOP_LRA_MIN_HZ) {
+    driveOpenLoopLRA(freqHz);                   // chip makes the frequency
+    drive = Drive::OpenLoopLRA;
+  } else {
+    setDrive(Drive::Synth);                     // we draw the sine ourselves
+  }
+
   drv.setMode(DRV2605_MODE_REALTIME);
-  drv.setRealtimeValue(strength);
-  buzzing = true;
+  if (drive == Drive::Synth) {
+    synthAmp = strength;
+    synthStartUs = micros();
+    synthLastUs = synthStartUs - SYNTH_STEP_US;
+    synthLast = 0;
+    buzzing = true;
+    motorService();
+  } else {
+    drv.setRealtimeValue(strength);
+    buzzing = true;
+  }
+}
+
+void motorService() {
+  if (!buzzing || drive != Drive::Synth) return;
+  uint32_t now = micros();
+  if (now - synthLastUs < SYNTH_STEP_US) return;
+  synthLastUs = now;
+  // Phase comes from the clock, so late updates never shift the frequency.
+  float t = (now - synthStartUs) * 1e-6f;
+  float ph = t * freqHz;
+  ph -= (uint32_t)ph;
+  int8_t v = (int8_t)lroundf(synthAmp * sinf(2 * PI * ph));
+  if (v != synthLast) {
+    drv.setRealtimeValue((uint8_t)v);           // signed: negative = reverse
+    synthLast = v;
+  }
 }
 
 void buzzFor(uint16_t ms, uint8_t strength) {

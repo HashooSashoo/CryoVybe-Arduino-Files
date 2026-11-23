@@ -1,12 +1,13 @@
-// Motor setup: I2C power, chip detection, closed-loop ERM configuration,
-// and auto-calibration. An open-loop configure function would go here later.
+// Motor setup: I2C power, chip detection, LRA configuration (closed loop,
+// open loop at a set frequency, or direct drive), and auto-calibration.
 //
 // Wiring (Feather -> DRV2605L breakout):
-//   3V  -> VIN
+//   3V  -> VIN      (or USB -> VIN for more voltage headroom; the breakout
+//                    takes up to 5 V and the LRA can then be driven harder)
 //   GND -> GND
 //   SDA -> SDA
 //   SCL -> SCL
-//   Motor wires -> the two motor pads (+ and -)
+//   LRA wires -> the two motor pads (an LRA has no polarity)
 //   Leave the IN pin unconnected.
 
 #include <Arduino.h>
@@ -15,31 +16,43 @@
 
 Adafruit_DRV2605 drv;
 
-// ---- Motor settings: check your motor's datasheet ----
-// If the motor rattles or sounds harsh, lower ERM_RATED_V a little.
-static const float ERM_RATED_V = 3.0f;   // rated (average) voltage, volts
-static const float ERM_PEAK_V  = 3.7f;   // overdrive clamp for the startup kick, volts peak
+// ---- LRA settings: fill these in from YOUR motor's datasheet ----
+// Resonant frequency: the frequency the LRA vibrates hardest at.
+static const float LRA_RESONANT_HZ = 170.0f;
+// Rated drive voltage, volts RMS.
+static const float LRA_RATED_VRMS  = 2.0f;
+// Maximum peak voltage the motor may see. This is also the full-scale
+// output in the open-loop modes used for off-resonance frequencies, so it
+// sets the most amplitude you can get there. Never set it above the
+// motor's absolute maximum or above the supply voltage on VIN.
+static const float LRA_PEAK_V      = 2.9f;
 
 namespace {
 
 // DRV2605L register addresses (TI datasheet)
-constexpr uint8_t REG_STATUS   = 0x00;
-constexpr uint8_t REG_MODE     = 0x01;
-constexpr uint8_t REG_GO       = 0x0C;
-constexpr uint8_t REG_RATED_V  = 0x16;
-constexpr uint8_t REG_CLAMP_V  = 0x17;
-constexpr uint8_t REG_CAL_COMP = 0x18;
-constexpr uint8_t REG_CAL_BEMF = 0x19;
-constexpr uint8_t REG_FEEDBACK = 0x1A;
-constexpr uint8_t REG_CONTROL1 = 0x1B;
-constexpr uint8_t REG_CONTROL2 = 0x1C;
-constexpr uint8_t REG_CONTROL3 = 0x1D;
-constexpr uint8_t REG_CONTROL4 = 0x1E;
+constexpr uint8_t REG_STATUS    = 0x00;
+constexpr uint8_t REG_MODE      = 0x01;
+constexpr uint8_t REG_GO        = 0x0C;
+constexpr uint8_t REG_RATED_V   = 0x16;
+constexpr uint8_t REG_CLAMP_V   = 0x17;
+constexpr uint8_t REG_CAL_COMP  = 0x18;
+constexpr uint8_t REG_CAL_BEMF  = 0x19;
+constexpr uint8_t REG_FEEDBACK  = 0x1A;
+constexpr uint8_t REG_CONTROL1  = 0x1B;
+constexpr uint8_t REG_CONTROL2  = 0x1C;
+constexpr uint8_t REG_CONTROL3  = 0x1D;
+constexpr uint8_t REG_CONTROL4  = 0x1E;
+constexpr uint8_t REG_OL_PERIOD = 0x20;   // LRA open-loop period, 98.46 us steps
+constexpr uint8_t REG_LRA_PER   = 0x22;   // measured LRA period (read only)
 
-constexpr uint8_t MODE_AUTOCAL = 0x07;
+constexpr uint8_t MODE_AUTOCAL  = 0x07;
 
-// ERM-mode lookup for BLANKING_TIME and IDISS_TIME
-constexpr float ERM_TIME_LUT[4] = {45e-6f, 75e-6f, 150e-6f, 225e-6f};
+constexpr uint8_t FB_LRA        = 0x80;   // FEEDBACK: N_ERM_LRA
+constexpr uint8_t C3_ERM_OL     = 0x20;   // CONTROL3: ERM_OPEN_LOOP
+constexpr uint8_t C3_RTP_UNSIGN = 0x08;   // CONTROL3: DATA_FORMAT_RTP (0 = signed)
+constexpr uint8_t C3_LRA_OL     = 0x01;   // CONTROL3: LRA_OPEN_LOOP
+
+constexpr float PERIOD_STEP_US  = 98.46f;
 
 // Some Feathers switch power to the I2C pins on and off; make sure it's on.
 void powerI2C() {
@@ -54,42 +67,68 @@ void powerI2C() {
   delay(10);
 }
 
-void configureClosedLoopERM() {
-  // FEEDBACK: ERM (bit 7 = 0), brake factor 3x, loop gain high, BEMF gain 2.
-  // (Auto-calibration overwrites BEMF_GAIN with its own result.)
-  drv.writeRegister8(REG_FEEDBACK, 0x2A);
+void setBits(uint8_t reg, uint8_t mask, uint8_t value) {
+  uint8_t v = drv.readRegister8(reg);
+  drv.writeRegister8(reg, (v & ~mask) | (value & mask));
+}
 
-  // CONTROL1: startup boost on, keep the existing DRIVE_TIME
-  uint8_t c1 = drv.readRegister8(REG_CONTROL1) | 0x80;
-  drv.writeRegister8(REG_CONTROL1, c1);
+// Full closed-loop LRA setup, written before auto-calibration.
+void configureClosedLoopLRA() {
+  // FEEDBACK: LRA (bit 7), brake factor 3x, loop gain high, BEMF gain 2.
+  // (Auto-calibration overwrites BEMF_GAIN with its own result.)
+  drv.writeRegister8(REG_FEEDBACK, 0xBA);
+
+  // CONTROL1: startup boost on, DRIVE_TIME = half the resonant period
+  // (LRA: 0.1 ms steps + 0.5 ms). This is the first guess the chip uses
+  // to lock on to resonance.
+  int driveTime = (int)((500.0f / LRA_RESONANT_HZ - 0.5f) / 0.1f + 0.5f);
+  drv.writeRegister8(REG_CONTROL1, 0x80 | constrain(driveTime, 0, 31));
 
   // CONTROL2: bidirectional input, brake stabilizer, SAMPLE_TIME = 300 us,
   // BLANKING_TIME = 1, IDISS_TIME = 1.
-  // Written BEFORE the clamp math below, because the clamp depends on these timings.
-  const uint8_t c2 = 0xF5;
-  drv.writeRegister8(REG_CONTROL2, c2);
+  drv.writeRegister8(REG_CONTROL2, 0xF5);
 
-  float tDrive = ((c1 & 0x1F) * 0.2f + 1.0f) * 1e-3f;   // ERM: 0.2 ms steps + 1 ms
-  float tBlank = ERM_TIME_LUT[(c2 >> 2) & 0x03];
-  float tIdiss = ERM_TIME_LUT[c2 & 0x03];
-
-  // Closed-loop ERM formulas (300 us sample time)
-  int rated = (int)(ERM_RATED_V / 21.18e-3f + 0.5f);
-  int clamp = (int)(ERM_PEAK_V * (tDrive + tIdiss + tBlank) /
-                    (21.64e-3f * (tDrive - 300e-6f)) + 0.5f);
+  // Closed-loop LRA formulas (300 us sample time)
+  float k = 1.0f - (4 * 300e-6f + 300e-6f) * LRA_RESONANT_HZ;
+  int rated = (int)(LRA_RATED_VRMS * sqrtf(k > 0 ? k : 0) / 20.58e-3f + 0.5f);
+  int clamp = (int)(LRA_PEAK_V / 21.96e-3f + 0.5f);
   drv.writeRegister8(REG_RATED_V, constrain(rated, 0, 255));
   drv.writeRegister8(REG_CLAMP_V, constrain(clamp, 0, 255));
 
-  // CONTROL3: closed loop (clear ERM_OPEN_LOOP, bit 5), keep the other bits
-  uint8_t c3 = drv.readRegister8(REG_CONTROL3);
-  drv.writeRegister8(REG_CONTROL3, c3 & ~0x20);
+  // CONTROL3: closed loop, signed real-time values, keep the other bits
+  setBits(REG_CONTROL3, C3_LRA_OL | C3_ERM_OL | C3_RTP_UNSIGN, 0);
 }
 
 }  // namespace
 
+// ---- Drive configurations ----
+// These only flip mode bits, so the auto-calibration results are kept.
+
+void driveClosedLoopLRA() {
+  setBits(REG_FEEDBACK, FB_LRA, FB_LRA);
+  setBits(REG_CONTROL3, C3_LRA_OL | C3_ERM_OL, 0);
+}
+
+float driveOpenLoopLRA(float hz) {
+  int period = (int)(1e6f / (hz * PERIOD_STEP_US) + 0.5f);
+  period = constrain(period, 1, 127);
+  drv.writeRegister8(REG_OL_PERIOD, period);
+  setBits(REG_FEEDBACK, FB_LRA, FB_LRA);
+  setBits(REG_CONTROL3, C3_LRA_OL | C3_ERM_OL, C3_LRA_OL);
+  return 1e6f / (period * PERIOD_STEP_US);
+}
+
+void driveOpenLoopDirect() {
+  // ERM open loop with signed real-time values is a plain bidirectional
+  // driver: the output voltage is (value / 127) x the clamp voltage, either
+  // polarity. That lets us draw any waveform, including below 80 Hz.
+  setBits(REG_FEEDBACK, FB_LRA, 0);
+  setBits(REG_CONTROL3, C3_LRA_OL | C3_ERM_OL, C3_ERM_OL);
+}
+
 bool calibrateMotor() {
-  Serial.println("Calibrating to the motor (hold it still, about 1 s)...");
-  configureClosedLoopERM();
+  Serial.println("Calibrating to the LRA (keep it mounted and still, about 1 s)...");
+  configureClosedLoopLRA();
   drv.writeRegister8(REG_CONTROL4, 0x30);    // longest, most accurate calibration
   drv.writeRegister8(REG_MODE, MODE_AUTOCAL);
   drv.writeRegister8(REG_GO, 0x01);
@@ -109,9 +148,17 @@ bool calibrateMotor() {
     Serial.print(drv.readRegister8(REG_CAL_COMP), HEX);
     Serial.print(", back-EMF 0x");
     Serial.println(drv.readRegister8(REG_CAL_BEMF), HEX);
+    uint8_t per = drv.readRegister8(REG_LRA_PER);
+    if (per) {
+      Serial.print("Measured LRA resonance: ~");
+      Serial.print(1e6f / (per * PERIOD_STEP_US), 0);
+      Serial.print(" Hz (LRA_RESONANT_HZ is set to ");
+      Serial.print(LRA_RESONANT_HZ, 0);
+      Serial.println(" Hz)");
+    }
   } else {
     Serial.println(timedOut ? "Calibration timed out." : "Calibration FAILED.");
-    Serial.println("Check the motor wires and that the motor is mounted, not loose.");
+    Serial.println("Check the LRA wires, LRA_RESONANT_HZ, and that the motor is mounted, not loose.");
   }
   return ok;
 }
@@ -124,8 +171,8 @@ bool initMotor() {
     return false;
   }
 
-  drv.useERM();
-  drv.selectLibrary(1);   // ERM library A (libraries 1-5 are ERM, 6 is LRA)
+  drv.useLRA();
+  drv.selectLibrary(6);   // library 6 is the LRA library (1-5 are ERM)
   calibrateMotor();
   drv.setMode(DRV2605_MODE_INTTRIG);
   return true;

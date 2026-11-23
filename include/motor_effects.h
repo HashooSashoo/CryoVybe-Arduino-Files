@@ -33,9 +33,26 @@ constexpr uint8_t waitMs(uint16_t ms) {
 bool playEffect(uint8_t n);                                // false if n isn't 1-123
 bool playSequence(const uint8_t *steps, uint8_t count);    // up to 8 steps (effects or waitMs)
 
+// Library effects always play at the LRA's resonance (closed loop),
+// whatever frequency is set below.
+
+// ---- Buzz frequency ----
+constexpr float MIN_DRIVE_HZ = 50.0f;
+constexpr float MAX_DRIVE_HZ = 250.0f;
+// 0 = follow the LRA's resonance (strongest). Otherwise the value is
+// clamped to MIN_DRIVE_HZ..MAX_DRIVE_HZ. Returns the frequency actually
+// used (0 for resonance). Applies straight away if a buzz is running.
+float setDriveFrequency(float hz);
+float driveFrequency();
+
 // ---- Direct strength control (real-time mode) ----
 void startBuzz(uint8_t strength);                // 0-127, runs until stopMotor()
 void buzzFor(uint16_t ms, uint8_t strength = 127); // blocking
+
+// Below ~80 Hz the sine is drawn by the sketch itself, one step at a time,
+// so this must be called very often while buzzing (accelIdle() and
+// accelService() already do). Does nothing in every other case.
+void motorService();
 
 // ---- Status and control ----
 bool isPlaying(); // outputs if the motor is vibrating or not

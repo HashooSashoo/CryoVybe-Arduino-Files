@@ -32,3 +32,11 @@ void accelIdle(uint16_t ms);   // like delay(ms), but keeps measuring
 
 void accelStreamStart();       // start streaming raw samples (recording)
 void accelStreamStop();        // stop streaming raw samples
+
+// The most recent @ACC reading. seq goes up by one with each new reading.
+// dispUm is the peak displacement (half of peak-to-peak), micrometres.
+struct AccelReading {
+  float freq, peakG, maxG, dispUm;
+  uint32_t seq;
+};
+bool accelLatest(AccelReading &r);   // false if no sensor or no reading yet
