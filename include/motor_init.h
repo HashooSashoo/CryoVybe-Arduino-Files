@@ -13,6 +13,10 @@ bool initMotor();
 // Re-runs auto-calibration (about 1 s, blocking). Returns true on success.
 bool calibrateMotor();
 
+// Tells the chip where the resonance is (sets DRIVE_TIME), so closed loop
+// locks on to it quickly. The resonance sweep calls this with what it found.
+void setResonanceGuess(float hz);
+
 // ---- Drive configurations (used by motor_effects.cpp) ----
 // LRA closed loop: the chip tracks the motor's resonance (strongest, and
 // what the click/buzz library effects are tuned for).

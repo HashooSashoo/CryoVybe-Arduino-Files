@@ -38,7 +38,7 @@ bool playSequence(const uint8_t *steps, uint8_t count);    // up to 8 steps (eff
 
 // ---- Buzz frequency ----
 constexpr float MIN_DRIVE_HZ = 50.0f;
-constexpr float MAX_DRIVE_HZ = 250.0f;
+constexpr float MAX_DRIVE_HZ = 300.0f;   // room for the resonance sweep
 // 0 = follow the LRA's resonance (strongest). Otherwise the value is
 // clamped to MIN_DRIVE_HZ..MAX_DRIVE_HZ. Returns the frequency actually
 // used (0 for resonance). Applies straight away if a buzz is running.

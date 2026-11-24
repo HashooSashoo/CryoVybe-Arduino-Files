@@ -4,21 +4,26 @@
 //   3                    half-second buzz, then two clicks, repeating
 //   4                    continuous buzz that adjusts its own strength to
 //                        hold the target amplitude (needs the LSM6DSOX)
+//   s                    re-run the resonance sweep (when nothing is running)
 //   v + 0-100 + Enter    set strength in percent, e.g. v60 (works any time)
-//   f + Hz + Enter       buzz frequency, 50-250, or f0 for the LRA's
-//                        resonance (strongest), e.g. f120 (works any time)
 //   a + um + Enter       target amplitude for mode 4 in micrometres
 //                        (peak, i.e. half of peak-to-peak), e.g. a80
 //   + / -                strength up / down by 10% (works any time)
 //   r / e                start / end recording: streams every raw accelerometer
 //                        sample as @RAW lines (works any time, motor on or off)
 // Any other key ends the running mode and returns to this menu.
+//
+// Maximum-amplitude build: the frequency is not adjustable. At start-up a
+// resonance sweep (resonance_sweep.cpp) measures, with the accelerometer,
+// which drive moves the device the most, and every buzz uses that. Strength
+// starts at 100%; the voltage limits in motor_init.cpp set what 100% means.
 // While a mode runs, the LSM6DSOX (if connected) streams @ACC / @WAV readings.
 
 #include <Arduino.h>
 #include "motor_init.h"
 #include "motor_effects.h"
 #include "accel_meter.h"
+#include "resonance_sweep.h"
 
 // ---- Timing for the modes (tweak to taste) ----
 const uint16_t CLICK_GAP_MS    = 150;   // mode 2: pause between clicks
@@ -26,8 +31,7 @@ const uint16_t PATTERN_BUZZ_MS = 500;   // mode 3: buzz length
 const uint16_t DOUBLE_CLICK_MS = 100;   // mode 3: pause between the two clicks
 const uint16_t PATTERN_GAP_MS  = 300;   // mode 3: pause before the pattern repeats
 
-// ---- Frequency and amplitude ----
-const uint16_t START_FREQ_HZ   = 0;     // 0 = LRA resonance; or 50-250
+// ---- Amplitude ----
 const uint16_t START_TARGET_UM = 80;    // mode 4 target, micrometres peak
 const float    SATURATION_G    = 15.5f; // accelerometer tops out at 16 g
 
@@ -90,16 +94,11 @@ void setStrength(int pct) {
   Serial.println(strengthPct);
 }
 
-void setFrequency(int hz) {
-  float actual = setDriveFrequency(hz);
-  if (actual == 0) Serial.println("Frequency: LRA resonance (auto)");
-  else {
-    Serial.print("Frequency: ");
-    Serial.print(actual, 1);
-    Serial.println(" Hz");
-  }
-  Serial.print("@FREQ ");                 // for the control panel
-  Serial.println(actual, 1);
+// Runs the sweep and makes its result the buzz frequency.
+void runSweep() {
+  float hz = setDriveFrequency(findBestDrive());
+  Serial.print("@FREQ ");                 // for the control panel (0 = closed loop)
+  Serial.println(hz, 1);
 }
 
 void setTarget(int um) {
@@ -111,13 +110,14 @@ void setTarget(int um) {
 
 // ---- Keystrokes ----
 
-char numberCmd = 0;                     // 'v', 'f' or 'a' while a number is typed
+char numberCmd = 0;                     // 'v' or 'a' while a number is typed
 String numberDigits;
 
 // Reads whatever has been typed. Strength commands are handled here and
 // never interrupt a mode. Returns:
 //   'x'        stop the running mode (any other key while running)
-//   '1'-'3'    start that mode (only when nothing is running)
+//   '1'-'4'    start that mode (only when nothing is running)
+//   's'        re-run the resonance sweep (only when nothing is running)
 //   0          nothing to do
 char processInput(bool running) {
   while (Serial.available()) {
@@ -132,11 +132,10 @@ char processInput(bool running) {
       numberCmd = 0;
       if (c == '\r' || c == '\n') {
         if (numberDigits.length() == 0) {
-          Serial.println("Type the letter, a number, then Enter (e.g. v60, f120, a80).");
+          Serial.println("Type the letter, a number, then Enter (e.g. v60, a80).");
         } else {
           int n = numberDigits.toInt();
           if (cmd == 'v') setStrength(n);
-          if (cmd == 'f') setFrequency(n);
           if (cmd == 'a') setTarget(n);
         }
         continue;
@@ -146,7 +145,6 @@ char processInput(bool running) {
 
     if (c == '\r' || c == '\n') continue;
     if (c == 'v' || c == 'V') { numberCmd = 'v'; numberDigits = ""; continue; }
-    if (c == 'f' || c == 'F') { numberCmd = 'f'; numberDigits = ""; continue; }
     if (c == 'a' || c == 'A') { numberCmd = 'a'; numberDigits = ""; continue; }
     if (c == '+' || c == '=') { setStrength(strengthPct + STRENGTH_STEP); continue; }
     if (c == '-' || c == '_') { setStrength((int)strengthPct - STRENGTH_STEP); continue; }
@@ -155,6 +153,7 @@ char processInput(bool running) {
 
     if (running) return 'x';
     if (c >= '1' && c <= '4') return c;
+    if (c == 's' || c == 'S') return 's';
     if (c == ' ') continue;
 
     Serial.print("Unknown command: ");
@@ -281,10 +280,17 @@ void printMenu() {
   Serial.print(strengthPct);
   Serial.println("%   (v + number + Enter to set, e.g. v60; + / - to step)");
   float f = driveFrequency();
-  Serial.print("Frequency: ");
-  if (f == 0) Serial.print("LRA resonance");
-  else { Serial.print(f, 1); Serial.print(" Hz"); }
-  Serial.println("   (f + Hz + Enter, 50-250, or f0 for resonance)");
+  Serial.print("Drive: ");
+  if (f == 0) Serial.print("closed loop, tracking resonance");
+  else { Serial.print("open loop at "); Serial.print(f, 1); Serial.print(" Hz"); }
+  if (bestDispUm() > 0) {
+    Serial.print(" (sweep: ");
+    Serial.print(bestDispUm(), 1);
+    Serial.print(" um peak at ");
+    Serial.print(resonanceHz(), 1);
+    Serial.print(" Hz)");
+  }
+  Serial.println("   (s to re-run the sweep)");
   Serial.print("Target amplitude: ");
   Serial.print(targetUm);
   Serial.println(" um peak   (a + number + Enter)");
@@ -323,7 +329,7 @@ void setup() {
   }
   Serial.println("DRV2605L ready.");
   initAccel();
-  setDriveFrequency(START_FREQ_HZ);
+  runSweep();
   Serial.print("@STR ");
   Serial.println(strengthPct);
   printMenu();
@@ -334,6 +340,9 @@ void loop() {
   char c = processInput(false);
   if (c >= '1' && c <= '4') {
     runMode(c);
+    printMenu();
+  } else if (c == 's') {
+    runSweep();
     printMenu();
   }
 }

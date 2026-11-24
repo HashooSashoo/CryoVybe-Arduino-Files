@@ -17,14 +17,21 @@
 Adafruit_DRV2605 drv;
 
 // ---- LRA settings: fill these in from YOUR motor's datasheet ----
-// Resonant frequency: the frequency the LRA vibrates hardest at.
+// This branch drives the LRA as hard as these allow, so they ARE the
+// amplitude limit. Set them to the motor's MAXIMUM ratings (not "typical"),
+// and never above what the datasheet allows: an over-driven LRA overheats
+// or hits its end stops. The 8HF4's ratings are not known yet, so these are
+// cautious placeholders typical of small coin LRAs.
+//
+// First guess at the resonant frequency. Only used to help the chip lock
+// on; the resonance sweep (resonance_sweep.cpp) measures the real one.
 static const float LRA_RESONANT_HZ = 170.0f;
-// Rated drive voltage, volts RMS.
+// Maximum continuous drive voltage, volts RMS. Closed loop holds the motor
+// at this at 100% strength.
 static const float LRA_RATED_VRMS  = 2.0f;
-// Maximum peak voltage the motor may see. This is also the full-scale
-// output in the open-loop modes used for off-resonance frequencies, so it
-// sets the most amplitude you can get there. Never set it above the
-// motor's absolute maximum or above the supply voltage on VIN.
+// Maximum peak voltage. Full scale in open loop, and the limit for the
+// closed-loop start-up kick. Also can't usefully exceed the supply on VIN
+// (about 3.3 V from the Feather's 3V pin, about 5 V from its USB pin).
 static const float LRA_PEAK_V      = 2.9f;
 
 namespace {
@@ -100,6 +107,12 @@ void configureClosedLoopLRA() {
 }
 
 }  // namespace
+
+void setResonanceGuess(float hz) {
+  if (hz <= 0) return;
+  int driveTime = (int)((500.0f / hz - 0.5f) / 0.1f + 0.5f);
+  setBits(REG_CONTROL1, 0x1F, constrain(driveTime, 0, 31));
+}
 
 // ---- Drive configurations ----
 // These only flip mode bits, so the auto-calibration results are kept.
