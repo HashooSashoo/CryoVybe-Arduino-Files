@@ -241,7 +241,7 @@ void modeHoldAmplitude() {
       warnedSat = true;
     }
 
-    float disp = r.dispUm;
+    float disp = r.dispFUm;               // main frequency only: ignores rattle
     float err = (disp - targetUm) / targetUm;
     if (fabsf(err) < 0.05f) continue;       // within 5%: leave it alone
 

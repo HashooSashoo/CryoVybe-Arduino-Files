@@ -43,7 +43,7 @@ float ax[N], ay[N], az[N];    // acceleration, g
 float re[N], im[N];           // FFT working space
 uint16_t count = 0;
 
-AccelReading latest = {0, 0, 0, 0, 0};
+AccelReading latest = {0, 0, 0, 0, 0, 0};
 
 int16_t rawBuf[RAW_BATCH][3]; // raw samples waiting to be sent
 uint8_t rawCount = 0;
@@ -147,6 +147,7 @@ void analyzeAndReport() {
 
   // Main frequency: Hann window, FFT, peak bin with interpolation
   float freq = 0;
+  float fundPeakG = 0;   // peak acceleration of the main frequency alone, g
   if (rms >= MIN_RMS_G) {
     for (uint16_t i = 0; i < N; i++) {
       float w = 0.5f * (1 - cosf(2 * PI * i / (N - 1)));
@@ -163,22 +164,35 @@ void analyzeAndReport() {
     float denom = a - 2 * b + c;
     float shift = (denom != 0) ? 0.5f * (a - c) / denom : 0;
     freq = (k + shift) * fs / N;
+
+    // Amplitude of just that frequency, from the energy in its FFT peak
+    // (bins k-2..k+2 hold the whole Hann main lobe, wherever the frequency
+    // falls between bins). Parseval, one-sided, Hann (mean w^2 = 3/8):
+    //   sum |X|^2 = N^2 * A^2 * 3/32   ->   A = sqrt(32/3 * sum) / N
+    float energy = 0;
+    for (int i = (int)k - 2; i <= (int)k + 2; i++) {
+      if (i >= 1 && i < (int)(N / 2)) energy += re[i] * re[i];
+    }
+    fundPeakG = sqrtf(32.0f / 3.0f * energy) / N;
   }
 
   float peakG = rms * sqrtf(2.0f);
   float maxAbs = 0;
   for (uint16_t i = 0; i < N; i++) if (fabsf(dom[i]) > maxAbs) maxAbs = fabsf(dom[i]);
   float w = 2 * PI * freq;
-  float dispUm = (freq > 0) ? peakG * 9.80665f / (w * w) * 1e6f : 0;
+  // x = a / (2 pi f)^2, peak displacement in micrometres
+  float dispUm  = (freq > 0) ? peakG     * 9.80665f / (w * w) * 1e6f : 0;  // all of the signal
+  float dispFUm = (freq > 0) ? fundPeakG * 9.80665f / (w * w) * 1e6f : 0;  // main frequency only
 
   latest.freq = freq; latest.peakG = peakG; latest.maxG = maxAbs;
-  latest.dispUm = dispUm; latest.seq++;
+  latest.dispUm = dispUm; latest.dispFUm = dispFUm; latest.seq++;
 
   Serial.print("@ACC f=");    Serial.print(freq, 1);
   Serial.print(" pk=");       Serial.print(peakG, 3);
   Serial.print(" rms=");      Serial.print(rms, 3);
   Serial.print(" max=");      Serial.print(maxAbs, 3);
   Serial.print(" disp=");     Serial.print(dispUm, 1);
+  Serial.print(" dispf=");    Serial.print(dispFUm, 1);
   Serial.print(" axis=");     Serial.print(axis);
   Serial.print(" fs=");       Serial.println(fs, 0);
 
