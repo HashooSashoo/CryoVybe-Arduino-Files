@@ -367,10 +367,9 @@
             <div class="mgrid">
               <div><span class="label">Peak accel</span><span><b id="mPk">—</b><em>g</em></span></div>
               <div><span class="label">RMS accel</span><span><b id="mRms">—</b><em>g</em></span></div>
-              <div><span class="label">Displacement · whole signal</span><span><b id="mDisp">—</b><em>µm peak</em></span></div>
+              <div title="Peak-to-peak: 2 × a / (2πf)², using the acceleration of the whole signal"><span class="label">Amplitude · whole signal</span><span><b id="mDisp">—</b><em>µm p-p</em></span></div>
               <div><span class="label">Axis · rate</span><span><b id="mAxis">—</b></span></div>
-              <div title="x = a / (2πf)², using only the acceleration at the main frequency (from the FFT), so harmonics and noise are left out"><span class="label">Displacement · main freq</span><span><b id="mDispF">—</b><em>µm peak</em></span></div>
-              <div><span class="label">Peak-to-peak · main freq</span><span><b id="mDispPP">—</b><em>µm</em></span></div>
+              <div title="Peak-to-peak: 2 × a / (2πf)², using only the acceleration at the main frequency (from the FFT), so harmonics and noise are left out"><span class="label">Amplitude · main freq</span><span><b id="mDispF">—</b><em>µm p-p</em></span></div>
             </div>
           </div>
           <div>
@@ -781,7 +780,6 @@ function renderMeas() {
   $('mDisp').textContent = o.f > 0 ? fmt(o.disp, 1) : '—';
   const hasF = o.f > 0 && typeof o.dispf === 'number';     // older firmware has no dispf
   $('mDispF').textContent = hasF ? fmt(o.dispf, 1) : '—';
-  $('mDispPP').textContent = hasF ? fmt(2 * o.dispf, 1) : '—';
   $('mAxis').textContent = (o.axis || '—') + (o.fs ? ` · ${Math.round(o.fs)} Hz` : '');
 }
 

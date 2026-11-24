@@ -10,10 +10,10 @@
 // While measuring, it samples at ~1.67 kHz using the sensor's FIFO and,
 // every ~0.3 s, prints two lines over Serial:
 //   @ACC f=203.4 pk=1.234 rms=0.872 max=1.402 disp=7.4 dispf=7.1 axis=Z fs=1667
-//   disp  = peak displacement from x = a/(2 pi f)^2, with a = rms * sqrt(2)
-//           of the whole signal (harmonics and noise push it up)
+//   disp  = amplitude, PEAK-TO-PEAK, um: 2 x a/(2 pi f)^2, with
+//           a = rms * sqrt(2) of the whole signal (harmonics and noise push it up)
 //   dispf = the same, but a is only the main frequency's amplitude (from
-//           the FFT), so it ignores harmonics and noise. Both in um, peak.
+//           the FFT), so it ignores harmonics and noise.
 //   @WAV 12,-34,56,...      (160 samples of the strongest axis, milli-g)
 // The CryoVybe control panel (ui/cryovybe-control.html) reads these.
 //
@@ -38,8 +38,8 @@ void accelStreamStart();       // start streaming raw samples (recording)
 void accelStreamStop();        // stop streaming raw samples
 
 // The most recent @ACC reading. seq goes up by one with each new reading.
-// dispUm / dispFUm: peak displacement (half of peak-to-peak), micrometres,
-// from the whole signal / from the main frequency only (see @ACC above).
+// dispUm / dispFUm: amplitude, peak-to-peak, micrometres, from the whole
+// signal / from the main frequency only (see @ACC above).
 struct AccelReading {
   float freq, peakG, maxG, dispUm, dispFUm;
   uint32_t seq;

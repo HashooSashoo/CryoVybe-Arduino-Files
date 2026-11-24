@@ -180,9 +180,10 @@ void analyzeAndReport() {
   float maxAbs = 0;
   for (uint16_t i = 0; i < N; i++) if (fabsf(dom[i]) > maxAbs) maxAbs = fabsf(dom[i]);
   float w = 2 * PI * freq;
-  // x = a / (2 pi f)^2, peak displacement in micrometres
-  float dispUm  = (freq > 0) ? peakG     * 9.80665f / (w * w) * 1e6f : 0;  // all of the signal
-  float dispFUm = (freq > 0) ? fundPeakG * 9.80665f / (w * w) * 1e6f : 0;  // main frequency only
+  // Amplitude, peak-to-peak, micrometres: x = a / (2 pi f)^2 gives the
+  // 0-to-peak displacement, and the full back-and-forth travel is twice that.
+  float dispUm  = (freq > 0) ? 2 * peakG     * 9.80665f / (w * w) * 1e6f : 0;  // all of the signal
+  float dispFUm = (freq > 0) ? 2 * fundPeakG * 9.80665f / (w * w) * 1e6f : 0;  // main frequency only
 
   latest.freq = freq; latest.peakG = peakG; latest.maxG = maxAbs;
   latest.dispUm = dispUm; latest.dispFUm = dispFUm; latest.seq++;

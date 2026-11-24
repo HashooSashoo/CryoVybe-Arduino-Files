@@ -6,8 +6,8 @@
 //                        hold the target amplitude (needs the LSM6DSOX)
 //   s                    re-run the resonance sweep (when nothing is running)
 //   v + 0-100 + Enter    set strength in percent, e.g. v60 (works any time)
-//   a + um + Enter       target amplitude for mode 4 in micrometres
-//                        (peak, i.e. half of peak-to-peak), e.g. a80
+//   a + um + Enter       target amplitude for mode 4, micrometres
+//                        peak-to-peak, e.g. a80
 //   + / -                strength up / down by 10% (works any time)
 //   r / e                start / end recording: streams every raw accelerometer
 //                        sample as @RAW lines (works any time, motor on or off)
@@ -32,7 +32,7 @@ const uint16_t DOUBLE_CLICK_MS = 100;   // mode 3: pause between the two clicks
 const uint16_t PATTERN_GAP_MS  = 300;   // mode 3: pause before the pattern repeats
 
 // ---- Amplitude ----
-const uint16_t START_TARGET_UM = 80;    // mode 4 target, micrometres peak
+const uint16_t START_TARGET_UM = 80;    // mode 4 target, micrometres peak-to-peak
 const float    SATURATION_G    = 15.5f; // accelerometer tops out at 16 g
 
 uint16_t targetUm = START_TARGET_UM;
@@ -235,7 +235,7 @@ void modeHoldAmplitude() {
     if (waitFor) { waitFor--; continue; } // first reading after a change is mixed
 
     if (r.maxG >= SATURATION_G && !warnedSat) {
-      Serial.println("Warning: accelerometer is at its 16 g limit, so the displacement");
+      Serial.println("Warning: accelerometer is at its 16 g limit, so the amplitude");
       Serial.println("reading is too low. Lower the frequency or the target.");
       warnedSat = true;
     }
@@ -286,14 +286,14 @@ void printMenu() {
   if (bestDispUm() > 0) {
     Serial.print(" (sweep: ");
     Serial.print(bestDispUm(), 1);
-    Serial.print(" um peak at ");
+    Serial.print(" um p-p at ");
     Serial.print(resonanceHz(), 1);
     Serial.print(" Hz)");
   }
   Serial.println("   (s to re-run the sweep)");
   Serial.print("Target amplitude: ");
   Serial.print(targetUm);
-  Serial.println(" um peak   (a + number + Enter)");
+  Serial.println(" um p-p   (a + number + Enter)");
   Serial.println("Select a mode (any other key stops it):");
   Serial.println("  1  Continuous buzz");
   Serial.println("  2  Strong clicks");

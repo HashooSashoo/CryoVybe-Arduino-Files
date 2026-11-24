@@ -15,5 +15,5 @@ float findBestDrive();
 
 // Result of the last findBestDrive(), for the menu
 float bestDriveHz();     // 0 = closed loop
-float bestDispUm();      // main-frequency displacement measured there, um peak
+float bestDispUm();      // main-frequency amplitude measured there, um peak-to-peak
 float resonanceHz();     // frequency the motor actually vibrated at

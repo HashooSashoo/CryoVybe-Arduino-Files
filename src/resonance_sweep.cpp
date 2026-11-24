@@ -40,7 +40,7 @@ void printPoint(const char *label, float hz, const AccelReading &r) {
   if (hz > 0) { Serial.print(hz, 1); Serial.print(" Hz"); }
   Serial.print(" -> ");
   Serial.print(r.dispFUm, 1);
-  Serial.print(" um at ");
+  Serial.print(" um p-p at ");
   Serial.print(r.freq, 1);
   Serial.print(" Hz (");
   Serial.print(r.peakG, 2);
@@ -104,10 +104,9 @@ float findBestDrive() {
   if (bestHz == 0) Serial.print("closed loop");
   else { Serial.print("open loop at "); Serial.print(setDriveFrequency(bestHz), 1); Serial.print(" Hz"); }
   Serial.print(", ");
+  Serial.print("amplitude ");
   Serial.print(bestDisp, 1);
-  Serial.print(" um peak (");
-  Serial.print(2 * bestDisp, 1);
-  Serial.print(" um peak-to-peak) at ");
+  Serial.print(" um peak-to-peak at ");
   Serial.print(resHz, 1);
   Serial.println(" Hz");
   if (saturated) Serial.println("Note: the accelerometer hit 16 g, so some readings are too low.");
